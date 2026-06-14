@@ -3,19 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Mobile MQTT Dashboard</title>
-    <!-- Tailwind CSS for styling -->
+    <title>Multi-Sensor Climate Dashboard</title>
+    <!-- Tailwind CSS for mobile layouts -->
     <script src="https://jsdelivr.net"></script>
     <!-- MQTT.js library -->
     <script src="https://unpkg.com"></script>
+    <!-- Chart.js library for drawing our responsive graphs -->
+    <script src="https://jsdelivr.net"></script>
+    <!-- Chart.js Date Adapter to parse time series strings correctly -->
+    <script src="https://jsdelivr.net"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 flex flex-col items-center">
 
-    <!-- 1. CREDENTIALS CONFIGURATION MODAL (Hidden by default) -->
+    <!-- 1. CREDENTIALS MODAL -->
     <div id="config-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl">
+        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold mb-1">Connect Adafruit IO</h2>
-            <p class="text-sm text-slate-400 mb-4">Credentials are saved locally on this device only.</p>
+            <p class="text-sm text-slate-400 mb-4">Credentials are saved locally on this phone.</p>
             
             <div class="space-y-4">
                 <div>
@@ -23,19 +27,40 @@
                     <input id="input-username" type="text" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IO API Key (Active Key)</label>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IO API Key</label>
                     <input id="input-key" type="password" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white">
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Temperature Feed Key</label>
-                    <input id="input-temp-feed" type="text" value="temperature" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Relay Feed Key</label>
-                    <input id="input-relay-feed" type="text" value="relay" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white">
+                <div class="border-t border-slate-700/50 pt-3">
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Feed Keys (Adafruit IO Key names)</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Sensor 1 Temp</label>
+                            <input id="f-t1" type="text" value="t1" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Sensor 1 Humidity</label>
+                            <input id="f-h1" type="text" value="h1" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Sensor 2 Temp</label>
+                            <input id="f-t2" type="text" value="t2" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Sensor 2 Humidity</label>
+                            <input id="f-h2" type="text" value="h2" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Sensor 3 Temp</label>
+                            <input id="f-t3" type="text" value="t3" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-500 block">Sensor 3 Humidity</label>
+                            <input id="f-h3" type="text" value="h3" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
+                        </div>
+                    </div>
                 </div>
                 <button id="save-config-btn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg mt-2 transition-all active:scale-[0.98]">
-                    Save & Connect
+                    Save & Load Dashboard
                 </button>
             </div>
         </div>
@@ -44,7 +69,7 @@
     <!-- 2. MAIN DASHBOARD INTERFACE -->
     <header class="w-full max-w-md flex justify-between items-center mb-6">
         <div>
-            <h1 class="text-xl font-bold tracking-wide">My IoT Node</h1>
+            <h1 class="text-xl font-bold tracking-wide">Climate Network</h1>
             <button id="disconnect-btn" class="text-xs text-slate-500 hover:text-rose-400 underline transition-colors cursor-pointer mt-0.5 block">
                 Clear Credentials
             </button>
@@ -54,45 +79,75 @@
         </div>
     </header>
 
-    <main class="w-full max-w-md space-y-4">
-        <!-- Sensor Card -->
-        <section class="bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700/50 flex flex-col justify-between">
-            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider">Temperature</h2>
-            <div class="flex items-baseline mt-2">
-                <span id="temp-value" class="text-5xl font-black text-emerald-400">--</span>
-                <span class="text-xl ml-1 text-slate-400">°C</span>
+    <main class="w-full max-w-md space-y-6 pb-12">
+        
+        <!-- Live Numerical Status Cards Group -->
+        <section class="grid grid-cols-3 gap-3">
+            <!-- Sensor 1 -->
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #1</span>
+                <div class="text-xl font-black text-amber-400"><span id="val-t1">--</span><span class="text-xs font-normal">°C</span></div>
+                <div class="text-sm font-semibold text-cyan-400 mt-0.5"><span id="val-h1">--</span><span class="text-xs font-normal">%</span></div>
+            </div>
+            <!-- Sensor 2 -->
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #2</span>
+                <div class="text-xl font-black text-rose-400"><span id="val-t2">--</span><span class="text-xs font-normal">°C</span></div>
+                <div class="text-sm font-semibold text-teal-400 mt-0.5"><span id="val-h2">--</span><span class="text-xs font-normal">%</span></div>
+            </div>
+            <!-- Sensor 3 -->
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #3</span>
+                <div class="text-xl font-black text-emerald-400"><span id="val-t3">--</span><span class="text-xs font-normal">°C</span></div>
+                <div class="text-sm font-semibold text-blue-400 mt-0.5"><span id="val-h3">--</span><span class="text-xs font-normal">%</span></div>
             </div>
         </section>
 
-        <!-- Toggle Switch Card -->
-        <section class="bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700/50">
-            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-3">Relay Control</h2>
-            <button id="toggle-btn" class="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition-all font-bold text-center tracking-wide shadow-lg shadow-indigo-600/20">
-                Turn On
-            </button>
+        <!-- Temperature Graph -->
+        <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Temperature (Past Week)</h2>
+            <div class="h-56 relative w-full">
+                <canvas id="tempChart"></canvas>
+            </div>
         </section>
+
+        <!-- Humidity Graph -->
+        <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Humidity (Past Week)</h2>
+            <div class="h-56 relative w-full">
+                <canvas id="humidityChart"></canvas>
+            </div>
+        </section>
+
     </main>
 
     <script>
         let client = null;
-        let relayState = "OFF";
         let config = {};
+        let tempChart, humidityChart;
 
-        // DOM elements
+        // Map sensor metrics to clean arrays
+        const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
+        
+        // Define color schemes for line separation on dark UI
+        const colors = {
+            t1: '#fbbf24', h1: '#22d3ee', // Yellow / Cyan
+            t2: '#f43f5e', h2: '#2dd4bf', // Rose / Teal
+            t3: '#34d399', h3: '#60a5fa'  // Emerald / Blue
+        };
+
         const modalEl = document.getElementById('config-modal');
         const statusEl = document.getElementById('status');
-        const tempEl = document.getElementById('temp-value');
-        const toggleBtn = document.getElementById('toggle-btn');
         const saveBtn = document.getElementById('save-config-btn');
         const disconnectBtn = document.getElementById('disconnect-btn');
 
-        // Check if configuration exists inside browser storage
         function init() {
-            const savedConfig = localStorage.getItem('mqtt_dash_config');
+            const savedConfig = localStorage.getItem('mqtt_dht11_config');
             if (savedConfig) {
                 config = JSON.parse(savedConfig);
                 modalEl.classList.add('hidden');
-                connectMQTT();
+                buildCharts();
+                loadHistoricalData();
             } else {
                 modalEl.classList.remove('hidden');
                 statusEl.innerText = "Setup Required";
@@ -100,93 +155,19 @@
             }
         }
 
-        // Save input values to LocalStorage
         saveBtn.addEventListener('click', () => {
-            const username = document.getElementById('input-username').value.trim();
-            const apiKey = document.getElementById('input-key').value.trim();
-            const tempFeed = document.getElementById('input-temp-feed').value.trim();
-            const relayFeed = document.getElementById('input-relay-feed').value.trim();
-
-            if (!username || !apiKey || !tempFeed || !relayFeed) {
-                alert("Please fill out all configuration blocks.");
-                return;
-            }
-
-            config = { username, apiKey, tempFeed, relayFeed };
-            localStorage.setItem('mqtt_dash_config', JSON.stringify(config));
+            config = {
+                username: document.getElementById('input-username').value.trim(),
+                apiKey: document.getElementById('input-key').value.trim(),
+                t1: document.getElementById('f-t1').value.trim(),
+                h1: document.getElementById('f-h1').value.trim(),
+                t2: document.getElementById('f-t2').value.trim(),
+                h2: document.getElementById('f-h2').value.trim(),
+                t3: document.getElementById('f-t3').value.trim(),
+                h3: document.getElementById('f-h3').value.trim(),
+            };
+            
+            if(!config.username || !config.apiKey) { alert("Missing profile settings."); return; }
+            localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
             modalEl.classList.add('hidden');
-            connectMQTT();
-        });
-
-        // Clear stored data to disconnect or switch accounts
-        disconnectBtn.addEventListener('click', () => {
-            if (confirm("Clear saved credentials from this device?")) {
-                localStorage.removeItem('mqtt_dash_config');
-                if (client) client.end();
-                tempEl.innerText = "--";
-                relayState = "OFF";
-                updateButtonUI();
-                init();
-            }
-        });
-
-        // Initialize connection protocol
-        function connectMQTT() {
-            statusEl.innerText = "Connecting...";
-            statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
-
-            const tempTopic = `${config.username}/feeds/${config.tempFeed}`;
-            const relayTopic = `${config.username}/feeds/${config.relayFeed}`;
-
-            client = mqtt.connect(`wss://://adafruit.com`, {
-                username: config.username,
-                password: config.apiKey,
-                clientId: 'mob_dash_' + Math.random().toString(16).substr(2, 6)
-            });
-
-            client.on('connect', () => {
-                statusEl.innerText = "Connected";
-                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-slate-950";
-                
-                client.subscribe([tempTopic, relayTopic]);
-            });
-
-            client.on('close', () => {
-                statusEl.innerText = "Offline";
-                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500 text-slate-100";
-            });
-
-            client.on('message', (topic, message) => {
-                const payload = message.toString();
-                if (topic === tempTopic) {
-                    tempEl.innerText = payload;
-                } else if (topic === relayTopic) {
-                    relayState = payload.toUpperCase();
-                    updateButtonUI();
-                }
-            });
-        }
-
-        // Click handler to publish state back out
-        toggleBtn.addEventListener('click', () => {
-            if (!client || !client.connected) return;
-            const nextState = (relayState === "ON") ? "OFF" : "ON";
-            const relayTopic = `${config.username}/feeds/${config.relayFeed}`;
-            client.publish(relayTopic, nextState, { qos: 0, retain: false });
-        });
-
-        function updateButtonUI() {
-            if (relayState === "ON") {
-                toggleBtn.innerText = "Turn Off";
-                toggleBtn.className = "w-full py-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] transition-all font-bold text-center tracking-wide shadow-lg shadow-rose-600/20";
-            } else {
-                toggleBtn.innerText = "Turn On";
-                toggleBtn.className = "w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition-all font-bold text-center tracking-wide shadow-lg shadow-indigo-600/20";
-            }
-        }
-
-        // Bootstrap on page load
-        init();
-    </script>
-</body>
-</html>
+            buildCharts();
