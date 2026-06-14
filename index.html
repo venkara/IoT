@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Sensor Climate Dashboard</title>
     <!-- Tailwind CSS for mobile layouts -->
-    <script src="https://jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
-    <script src="https://unpkg.com"></script>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <!-- Chart.js library for drawing our responsive graphs -->
-    <script src="https://jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Chart.js Date Adapter to parse time series strings correctly -->
-    <script src="https://jsdelivr.net"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 flex flex-col items-center">
 
@@ -121,19 +121,17 @@
 
     </main>
 
-    <script>
+        <script>
         let client = null;
         let config = {};
         let tempChart, humidityChart;
 
-        // Map sensor metrics to clean arrays
         const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
         
-        // Define color schemes for line separation on dark UI
         const colors = {
-            t1: '#fbbf24', h1: '#22d3ee', // Yellow / Cyan
-            t2: '#f43f5e', h2: '#2dd4bf', // Rose / Teal
-            t3: '#34d399', h3: '#60a5fa'  // Emerald / Blue
+            t1: '#fbbf24', h1: '#22d3ee',
+            t2: '#f43f5e', h2: '#2dd4bf',
+            t3: '#34d399', h3: '#60a5fa'
         };
 
         const modalEl = document.getElementById('config-modal');
@@ -171,3 +169,142 @@
             localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
             modalEl.classList.add('hidden');
             buildCharts();
+            loadHistoricalData();
+        });
+
+        disconnectBtn.addEventListener('click', () => {
+            if (confirm("Clear settings?")) {
+                localStorage.removeItem('mqtt_dht11_config');
+                if (client) client.end();
+                if (tempChart) tempChart.destroy();
+                if (humidityChart) humidityChart.destroy();
+                sensors.forEach(s => document.getElementById(`val-${s}`).innerText = "--");
+                init();
+            }
+        });
+
+        function buildCharts() {
+            const chartOptions = () => ({
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'time', time: { unit: 'day' }, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                },
+                plugins: { legend: { labels: { color: '#f8fafc', font: { size: 10 } } } },
+                elements: { point: { radius: 1, hoverRadius: 4 }, line: { borderWidth: 2 } }
+            });
+
+            tempChart = new Chart(document.getElementById('tempChart'), {
+                type: 'line',
+                data: { datasets: [
+                    { label: 'Sensor 1', data: [], borderColor: colors.t1, backgroundColor: colors.t1+'22' },
+                    { label: 'Sensor 2', data: [], borderColor: colors.t2, backgroundColor: colors.t2+'22' },
+                    { label: 'Sensor 3', data: [], borderColor: colors.t3, backgroundColor: colors.t3+'22' }
+                ]},
+                options: chartOptions()
+            });
+
+            humidityChart = new Chart(document.getElementById('humidityChart'), {
+                type: 'line',
+                data: { datasets: [
+                    { label: 'Sensor 1', data: [], borderColor: colors.h1, backgroundColor: colors.h1+'22' },
+                    { label: 'Sensor 2', data: [], borderColor: colors.h2, backgroundColor: colors.h2+'22' },
+                    { label: 'Sensor 3', data: [], borderColor: colors.h3, backgroundColor: colors.h3+'22' }
+                ]},
+                options: chartOptions()
+            });
+        }
+
+        async function loadHistoricalData() {
+            statusEl.innerText = "Loading history...";
+            const headers = { "X-AIO-Key": config.apiKey };
+            
+            try {
+                const requests = sensors.map(s => 
+                    fetch(`https://io.adafruit.com/api/v2/${config.username}/feeds/${config[s]}/data?hours=168`, { headers })
+                    .then(res => res.json())
+                );
+                
+                const allData = await Promise.all(requests);
+                
+                tempChart.data.datasets[0].data = parseChartData(allData[0]);
+                tempChart.data.datasets[1].data = parseChartData(allData[2]);
+                tempChart.data.datasets[2].data = parseChartData(allData[4]);
+                
+                humidityChart.data.datasets[0].data = parseChartData(allData[1]);
+                humidityChart.data.datasets[1].data = parseChartData(allData[3]);
+                humidityChart.data.datasets[2].data = parseChartData(allData[5]);
+
+                tempChart.update();
+                humidityChart.update();
+                
+                connectLiveMQTT();
+
+            } catch (err) {
+                console.error("REST Error:", err);
+                statusEl.innerText = "API Error";
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 text-white";
+            }
+        }
+
+        function parseChartData(apiResponse) {
+            if(!Array.isArray(apiResponse)) return [];
+            return apiResponse.map(item => ({
+                x: new Date(item.created_at),
+                y: parseFloat(item.value)
+            })).reverse();
+        }
+
+        function connectLiveMQTT() {
+            statusEl.innerText = "Connecting live...";
+            statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
+
+            client = mqtt.connect(`wss://io.adafruit.com:443`, {
+                username: config.username,
+                password: config.apiKey,
+                clientId: 'dht_dash_' + Math.random().toString(16).substr(2, 6)
+            });
+
+            const topicToKeyMap = {};
+            const topicList = sensors.map(s => {
+                const topic = `${config.username}/feeds/${config[s]}`;
+                topicToKeyMap[topic] = s;
+                return topic;
+            });
+
+            client.on('connect', () => {
+                statusEl.innerText = "Live Connected";
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-slate-950";
+                client.subscribe(topicList);
+            });
+
+            client.on('close', () => {
+                statusEl.innerText = "Live Offline";
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500 text-slate-100";
+            });
+
+            client.on('message', (topic, message) => {
+                const key = topicToKeyMap[topic];
+                const val = parseFloat(message.toString());
+                if (isNaN(val)) return;
+
+                document.getElementById(`val-${key}`).innerText = val;
+
+                const now = new Date();
+                if (key.startsWith('t')) {
+                    const datasetIdx = key === 't1' ? 0 : key === 't2' ? 1 : 2;
+                    tempChart.data.datasets[datasetIdx].data.push({ x: now, y: val });
+                    tempChart.update('none');
+                } else {
+                    const datasetIdx = key === 'h1' ? 0 : key === 'h2' ? 1 : 2;
+                    humidityChart.data.datasets[datasetIdx].data.push({ x: now, y: val });
+                    humidityChart.update('none');
+                }
+            });
+        }
+
+        init();
+    </script>
+</body>
+</html>
