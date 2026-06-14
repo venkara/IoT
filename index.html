@@ -176,26 +176,30 @@
         async function loadHistoricalData() {
             statusEl.innerText = "Loading history...";
             try {
+                // Fetch the raw historical arrays for all 6 target feeds
                 const requests = sensors.map(s => 
                     fetch(`https://adafruit.com{config.username}/feeds/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
                     .then(res => res.json())
                 );
                 const allData = await Promise.all(requests);
                 
-                tempChart.data.datasets[0].data = parseChartData(allData[0]);
-                tempChart.data.datasets[1].data = parseChartData(allData[2]);
-                tempChart.data.datasets[2].data = parseChartData(allData[4]);
+                // Map API data back to Chart.js datasets structures cleanly
+                tempChart.data.datasets[0].data = parseChartData(allData[0]); // t1
+                tempChart.data.datasets[1].data = parseChartData(allData[2]); // t2
+                tempChart.data.datasets[2].data = parseChartData(allData[4]); // t3
                 
-                humidityChart.data.datasets[0].data = parseChartData(allData[1]);
-                humidityChart.data.datasets[1].data = parseChartData(allData[3]);
-                humidityChart.data.datasets[2].data = parseChartData(allData[5]);
+                humidityChart.data.datasets[0].data = parseChartData(allData[1]); // h1
+                humidityChart.data.datasets[1].data = parseChartData(allData[3]); // h2
+                humidityChart.data.datasets[2].data = parseChartData(allData[5]); // h3
 
                 tempChart.update();
                 humidityChart.update();
                 
+                // Read from array element 0 (the latest entry returned from Adafruit API)
                 sensors.forEach((s, idx) => {
-                    if (allData[idx] && allData[idx].length > 0) {
-                        const lastVal = parseFloat(allData[idx][0].value);
+                    const historicalPoints = allData[idx];
+                    if (Array.isArray(historicalPoints) && historicalPoints.length > 0) {
+                        const lastVal = parseFloat(historicalPoints[0].value);
                         if (!isNaN(lastVal)) document.getElementById(`val-${s}`).innerText = lastVal.toFixed(1);
                     }
                 });
@@ -206,9 +210,9 @@
             }
         }
 
-        function parseChartData(arr) {
-            if(!Array.isArray(arr)) return [];
-            return arr.map(i => ({ x: new Date(i.created_at), y: parseFloat(i.value) })).reverse();
+        function parseChartData(singleFeedArray) {
+            if(!Array.isArray(singleFeedArray)) return [];
+            return singleFeedArray.map(i => ({ x: new Date(i.created_at), y: parseFloat(i.value) })).reverse();
         }
 
         function connectLiveMQTT() {
@@ -247,3 +251,4 @@
     </script>
 </body>
 </html>
+
