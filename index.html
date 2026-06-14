@@ -195,9 +195,22 @@
             statusEl.innerText = "Loading history...";
             try {
                 // Parallel fetch requests for all 6 target feeds
-                const requests = sensors.map(s => 
-                    fetch(`https://io.adafruit.com/api/v2/${config.username}/feeds/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
-                    //fetch(`https://io.adafruit.com/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
+                const requests = sensors.map(s => {
+                    const keyString = config[s];
+                    let apiPath = '';
+                
+                    // If the feed key contains a dot (e.g. "tres-lunas.1h"), parse it out into a proper group URL
+                    if (keyString.includes('.')) {
+                        const [groupKey, feedKey] = keyString.split('.');
+                        apiPath = `groups/${groupKey}/feeds/${feedKey}`;
+                    } else {
+                        // Otherwise, fallback to a standard un-grouped root feed string
+                        apiPath = `feeds/${keyString}`;
+                    }
+                
+                    return fetch(`https://adafruit.com{config.username}/${apiPath}/data?hours=168`, { 
+                        headers: { "X-AIO-Key": config.apiKey } 
+                    })
                     .then(res => {
                         if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
                         return res.json();
