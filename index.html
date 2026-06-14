@@ -196,7 +196,8 @@
             try {
                 // Parallel fetch requests for all 6 target feeds
                 const requests = sensors.map(s => 
-                    fetch(`https://io.adafruit.com/${config.username}/feeds/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
+                    //fetch(`https://io.adafruit.com/${config.username}/feeds/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
+                    fetch(`https://io.adafruit.com/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
                     .then(res => {
                         if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
                         return res.json();
