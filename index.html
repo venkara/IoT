@@ -4,23 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Multi-Sensor Climate Dashboard</title>
-    <!-- Tailwind CSS for mobile layouts -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- MQTT.js library -->
-    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-    <!-- Chart.js library for drawing our responsive graphs -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Chart.js Date Adapter to parse time series strings correctly -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://unpkg.com"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://jsdelivr.net"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 flex flex-col items-center">
 
-    <!-- 1. CREDENTIALS MODAL -->
+    <!-- 1. CREDENTIALS CONFIGURATION MODAL -->
     <div id="config-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold mb-1">Connect Adafruit IO</h2>
             <p class="text-sm text-slate-400 mb-4">Credentials are saved locally on this phone.</p>
-            
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IO Username</label>
@@ -80,22 +75,18 @@
     </header>
 
     <main class="w-full max-w-md space-y-6 pb-12">
-        
         <!-- Live Numerical Status Cards Group -->
         <section class="grid grid-cols-3 gap-3">
-            <!-- Sensor 1 -->
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                 <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #1</span>
                 <div class="text-xl font-black text-amber-400"><span id="val-t1">--</span><span class="text-xs font-normal">°C</span></div>
                 <div class="text-sm font-semibold text-cyan-400 mt-0.5"><span id="val-h1">--</span><span class="text-xs font-normal">%</span></div>
             </div>
-            <!-- Sensor 2 -->
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                 <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #2</span>
                 <div class="text-xl font-black text-rose-400"><span id="val-t2">--</span><span class="text-xs font-normal">°C</span></div>
                 <div class="text-sm font-semibold text-teal-400 mt-0.5"><span id="val-h2">--</span><span class="text-xs font-normal">%</span></div>
             </div>
-            <!-- Sensor 3 -->
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                 <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #3</span>
                 <div class="text-xl font-black text-emerald-400"><span id="val-t3">--</span><span class="text-xs font-normal">°C</span></div>
@@ -106,71 +97,41 @@
         <!-- Temperature Graph -->
         <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
             <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Temperature (Past Week)</h2>
-            <div class="h-56 relative w-full">
-                <canvas id="tempChart"></canvas>
-            </div>
+            <div class="h-56 relative w-full"><canvas id="tempChart"></canvas></div>
         </section>
 
         <!-- Humidity Graph -->
         <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
             <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Humidity (Past Week)</h2>
-            <div class="h-56 relative w-full">
-                <canvas id="humidityChart"></canvas>
-            </div>
+            <div class="h-56 relative w-full"><canvas id="humidityChart"></canvas></div>
         </section>
-
     </main>
+
+    
     <script>
-        let client = null;
-        let config = {};
-        let tempChart, humidityChart;
-
-        // The array position must perfectly align with our asynchronous REST map:
-        // Index:  0=t1, 1=h1, 2=t2, 3=h2, 4=t3, 5=h3
+        let client = null, config = {}, tempChart, humidityChart;
         const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
-        
-        const colors = {
-            t1: '#fbbf24', h1: '#22d3ee',
-            t2: '#f43f5e', h2: '#2dd4bf',
-            t3: '#34d399', h3: '#60a5fa'
-        };
-
-        const modalEl = document.getElementById('config-modal');
-        const statusEl = document.getElementById('status');
-        const saveBtn = document.getElementById('save-config-btn');
-        const disconnectBtn = document.getElementById('disconnect-btn');
+        const colors = { t1: '#fbbf24', h1: '#22d3ee', t2: '#f43f5e', h2: '#2dd4bf', t3: '#34d399', h3: '#60a5fa' };
+        const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
+        const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
 
         function init() {
-            const savedConfig = localStorage.getItem('mqtt_dht11_config');
-            if (savedConfig) {
-                config = JSON.parse(savedConfig);
-                modalEl.classList.add('hidden');
-                buildCharts();
-                loadHistoricalData();
-            } else {
-                modalEl.classList.remove('hidden');
-                statusEl.innerText = "Setup Required";
-                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300";
-            }
+            const saved = localStorage.getItem('mqtt_dht11_config');
+            if (saved) { config = JSON.parse(saved); modalEl.classList.add('hidden'); buildCharts(); loadHistoricalData(); } 
+            else { modalEl.classList.remove('hidden'); statusEl.innerText = "Setup Required"; statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300"; }
         }
 
         saveBtn.addEventListener('click', () => {
             config = {
                 username: document.getElementById('input-username').value.trim(),
                 apiKey: document.getElementById('input-key').value.trim(),
-                t1: document.getElementById('f-t1').value.trim(),
-                h1: document.getElementById('f-h1').value.trim(),
-                t2: document.getElementById('f-t2').value.trim(),
-                h2: document.getElementById('f-h2').value.trim(),
-                t3: document.getElementById('f-t3').value.trim(),
-                h3: document.getElementById('f-h3').value.trim(),
+                t1: document.getElementById('f-t1').value.trim(), h1: document.getElementById('f-h1').value.trim(),
+                t2: document.getElementById('f-t2').value.trim(), h2: document.getElementById('f-h2').value.trim(),
+                t3: document.getElementById('f-t3').value.trim(), h3: document.getElementById('f-h3').value.trim(),
             };
-            
-            if(!config.username || !config.apiKey) { alert("Missing profile settings."); return; }
+            if(!config.username || !config.apiKey) { alert("Missing settings."); return; }
             localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
-            modalEl.classList.add('hidden');
-            buildCharts();
-            loadHistoricalData();
+            modalEl.classList.add('hidden'); buildCharts(); loadHistoricalData();
         });
 
         disconnectBtn.addEventListener('click', () => {
@@ -185,9 +146,8 @@
         });
 
         function buildCharts() {
-            const chartOptions = () => ({
-                responsive: true,
-                maintainAspectRatio: false,
+            const opt = () => ({
+                responsive: true, maintainAspectRatio: false,
                 scales: {
                     x: { type: 'time', time: { unit: 'day' }, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
                     y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
@@ -195,118 +155,94 @@
                 plugins: { legend: { labels: { color: '#f8fafc', font: { size: 10 } } } },
                 elements: { point: { radius: 1, hoverRadius: 4 }, line: { borderWidth: 2 } }
             });
-
             tempChart = new Chart(document.getElementById('tempChart'), {
                 type: 'line',
                 data: { datasets: [
                     { label: 'Sensor 1', data: [], borderColor: colors.t1, backgroundColor: colors.t1+'22' },
                     { label: 'Sensor 2', data: [], borderColor: colors.t2, backgroundColor: colors.t2+'22' },
                     { label: 'Sensor 3', data: [], borderColor: colors.t3, backgroundColor: colors.t3+'22' }
-                ]},
-                options: chartOptions()
+                ]}, options: opt()
             });
-
             humidityChart = new Chart(document.getElementById('humidityChart'), {
                 type: 'line',
                 data: { datasets: [
                     { label: 'Sensor 1', data: [], borderColor: colors.h1, backgroundColor: colors.h1+'22' },
                     { label: 'Sensor 2', data: [], borderColor: colors.h2, backgroundColor: colors.h2+'22' },
                     { label: 'Sensor 3', data: [], borderColor: colors.h3, backgroundColor: colors.h3+'22' }
-                ]},
-                options: chartOptions()
+                ]}, options: opt()
             });
         }
 
         async function loadHistoricalData() {
             statusEl.innerText = "Loading history...";
-            const headers = { "X-AIO-Key": config.apiKey };
-            
             try {
-                // Execute all API requests in parallel
                 const requests = sensors.map(s => 
-                    fetch(`https://adafruit.com{config.username}/feeds/${config[s]}/data?hours=168`, { headers })
+                    fetch(`https://adafruit.com{config.username}/feeds/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
                     .then(res => res.json())
                 );
-                
                 const allData = await Promise.all(requests);
                 
-                // Route the individual target array to its explicit dataset reference
-                tempChart.data.datasets[0].data = parseChartData(allData[0]); // t1
-                tempChart.data.datasets[1].data = parseChartData(allData[2]); // t2
-                tempChart.data.datasets[2].data = parseChartData(allData[4]); // t3
+                tempChart.data.datasets[0].data = parseChartData(allData[0]);
+                tempChart.data.datasets[1].data = parseChartData(allData[2]);
+                tempChart.data.datasets[2].data = parseChartData(allData[4]);
                 
-                humidityChart.data.datasets[0].data = parseChartData(allData[1]); // h1
-                humidityChart.data.datasets[1].data = parseChartData(allData[3]); // h2
-                humidityChart.data.datasets[2].data = parseChartData(allData[5]); // h3
+                humidityChart.data.datasets[0].data = parseChartData(allData[1]);
+                humidityChart.data.datasets[1].data = parseChartData(allData[3]);
+                humidityChart.data.datasets[2].data = parseChartData(allData[5]);
 
                 tempChart.update();
                 humidityChart.update();
                 
+                sensors.forEach((s, idx) => {
+                    if (allData[idx] && allData[idx].length > 0) {
+                        const lastVal = parseFloat(allData[idx][0].value);
+                        if (!isNaN(lastVal)) document.getElementById(`val-${s}`).innerText = lastVal.toFixed(1);
+                    }
+                });
                 connectLiveMQTT();
-
             } catch (err) {
-                console.error("REST Error:", err);
-                statusEl.innerText = "API Error";
+                console.error(err); statusEl.innerText = "API Error";
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 text-white";
             }
         }
 
-        function parseChartData(singleFeedArray) {
-            if(!Array.isArray(singleFeedArray)) return [];
-            return singleFeedArray.map(item => ({
-                x: new Date(item.created_at),
-                y: parseFloat(item.value)
-            })).reverse();
+        function parseChartData(arr) {
+            if(!Array.isArray(arr)) return [];
+            return arr.map(i => ({ x: new Date(i.created_at), y: parseFloat(i.value) })).reverse();
         }
 
         function connectLiveMQTT() {
             statusEl.innerText = "Connecting live...";
             statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
-
-            client = mqtt.connect(`wss://://adafruit.com`, {
-                username: config.username,
-                password: config.apiKey,
-                clientId: 'dht_dash_' + Math.random().toString(16).substr(2, 6)
-            });
-
-            const topicToKeyMap = {};
-            const topicList = sensors.map(s => {
-                const topic = `${config.username}/feeds/${config[s]}`;
-                topicToKeyMap[topic] = s;
-                return topic;
-            });
+            client = mqtt.connect(`wss://://adafruit.com`, { username: config.username, password: config.apiKey, clientId: 'dht_'+Math.random().toString(16).substr(2,6) });
+            
+            const topicMap = {};
+            const topics = sensors.map(s => { const t = `${config.username}/feeds/${config[s]}`; topicMap[t] = s; return t; });
 
             client.on('connect', () => {
                 statusEl.innerText = "Live Connected";
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-slate-950";
-                client.subscribe(topicList);
+                client.subscribe(topics);
             });
-
             client.on('close', () => {
                 statusEl.innerText = "Live Offline";
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500 text-slate-100";
             });
-
-            client.on('message', (topic, message) => {
-                const key = topicToKeyMap[topic];
-                const val = parseFloat(message.toString());
+            client.on('message', (topic, msg) => {
+                const key = topicMap[topic], val = parseFloat(msg.toString());
                 if (isNaN(val)) return;
-
-                document.getElementById(`val-${key}`).innerText = val;
-
+                
+                document.getElementById(`val-${key}`).innerText = val.toFixed(1);
                 const now = new Date();
                 if (key.startsWith('t')) {
-                    const datasetIdx = key === 't1' ? 0 : key === 't2' ? 1 : 2;
-                    tempChart.data.datasets[datasetIdx].data.push({ x: now, y: val });
-                    tempChart.update('none');
+                    const idx = key === 't1' ? 0 : key === 't2' ? 1 : 2;
+                    tempChart.data.datasets[idx].data.push({ x: now, y: val }); tempChart.update('none');
                 } else {
-                    const datasetIdx = key === 'h1' ? 0 : key === 'h2' ? 1 : 2;
-                    humidityChart.data.datasets[datasetIdx].data.push({ x: now, y: val });
-                    humidityChart.update('none');
+                    const idx = key === 'h1' ? 0 : key === 'h2' ? 1 : 2;
+                    humidityChart.data.datasets[idx].data.push({ x: now, y: val }); humidityChart.update('none');
                 }
             });
         }
-
         init();
     </script>
 </body>
