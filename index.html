@@ -112,17 +112,29 @@
     </main>
 
     
-    <script>
+      <script>
         let client = null, config = {}, tempChart, humidityChart;
+        
+        // The array position must perfectly align with our asynchronous REST map index locations:
+        // Index:  0=t1, 1=h1, 2=t2, 3=h2, 4=t3, 5=h3
         const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
         const colors = { t1: '#fbbf24', h1: '#22d3ee', t2: '#f43f5e', h2: '#2dd4bf', t3: '#34d399', h3: '#60a5fa' };
+        
         const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
         const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
 
         function init() {
             const saved = localStorage.getItem('mqtt_dht11_config');
-            if (saved) { config = JSON.parse(saved); modalEl.classList.add('hidden'); buildCharts(); loadHistoricalData(); } 
-            else { modalEl.classList.remove('hidden'); statusEl.innerText = "Setup Required"; statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300"; }
+            if (saved) { 
+                config = JSON.parse(saved); 
+                modalEl.classList.add('hidden'); 
+                buildCharts(); 
+                loadHistoricalData(); 
+            } else { 
+                modalEl.classList.remove('hidden'); 
+                statusEl.innerText = "Setup Required"; 
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300"; 
+            }
         }
 
         saveBtn.addEventListener('click', () => {
@@ -159,6 +171,7 @@
                 plugins: { legend: { labels: { color: '#f8fafc', font: { size: 10 } } } },
                 elements: { point: { radius: 1, hoverRadius: 4 }, line: { borderWidth: 2 } }
             });
+            
             tempChart = new Chart(document.getElementById('tempChart'), {
                 type: 'line',
                 data: { datasets: [
@@ -167,6 +180,7 @@
                     { label: 'Sensor 3', data: [], borderColor: colors.t3, backgroundColor: colors.t3+'22' }
                 ]}, options: opt()
             });
+            
             humidityChart = new Chart(document.getElementById('humidityChart'), {
                 type: 'line',
                 data: { datasets: [
@@ -180,14 +194,17 @@
         async function loadHistoricalData() {
             statusEl.innerText = "Loading history...";
             try {
-                // Fetch the raw historical arrays for all 6 target feeds
+                // Parallel fetch requests for all 6 target feeds
                 const requests = sensors.map(s => 
-                    fetch(`https://adafruit.com{config.username}/feeds/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
-                    .then(res => res.json())
+                    fetch(`https://io.adafruit.com/api/v2/${config.username}/feeds/${config[s]}/data?hours=168`, { headers: { "X-AIO-Key": config.apiKey } })
+                    .then(res => {
+                        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+                        return res.json();
+                    })
                 );
                 const allData = await Promise.all(requests);
                 
-                // Map API data back to Chart.js datasets structures cleanly
+                // Map tracking lines explicitly to correct array data points
                 tempChart.data.datasets[0].data = parseChartData(allData[0]); // t1
                 tempChart.data.datasets[1].data = parseChartData(allData[2]); // t2
                 tempChart.data.datasets[2].data = parseChartData(allData[4]); // t3
@@ -199,24 +216,29 @@
                 tempChart.update();
                 humidityChart.update();
                 
-                // Read from array element 0 (the latest entry returned from Adafruit API)
+                // Populate current readings display with precise decimal data from element 0 (newest point)
                 sensors.forEach((s, idx) => {
-                    const historicalPoints = allData[idx];
-                    if (Array.isArray(historicalPoints) && historicalPoints.length > 0) {
-                        const lastVal = parseFloat(historicalPoints[0].value);
+                    const feedPoints = allData[idx];
+                    if (Array.isArray(feedPoints) && feedPoints.length > 0) {
+                        const lastVal = parseFloat(feedPoints[0].value);
                         if (!isNaN(lastVal)) document.getElementById(`val-${s}`).innerText = lastVal.toFixed(1);
                     }
                 });
+                
                 connectLiveMQTT();
             } catch (err) {
-                console.error(err); statusEl.innerText = "API Error";
+                console.error("Historical Error Log:", err); 
+                statusEl.innerText = "API Error";
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 text-white";
             }
         }
 
         function parseChartData(singleFeedArray) {
             if(!Array.isArray(singleFeedArray)) return [];
-            return singleFeedArray.map(i => ({ x: new Date(i.created_at), y: parseFloat(i.value) })).reverse();
+            return singleFeedArray.map(i => ({ 
+                x: new Date(i.created_at), 
+                y: parseFloat(i.value) 
+            })).reverse(); // Reverse chronology puts oldest data first on timeline axes
         }
 
         function connectLiveMQTT() {
@@ -255,4 +277,3 @@
     </script>
 </body>
 </html>
-
