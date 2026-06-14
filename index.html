@@ -191,6 +191,7 @@
             });
         }
 
+
         async function loadHistoricalData() {
             statusEl.innerText = "Loading history...";
             try {
@@ -214,8 +215,8 @@
                     .then(res => {
                         if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
                         return res.json();
-                    }); // <-- Added missing semicolon here
-                }); // <-- This closing "});" is what fixes the syntax crash!
+                    });
+                }); // <-- THIS LINE RIGHT HERE FIXES THE EXTRA PARENTHESIS ERROR
                 
                 const allData = await Promise.all(requests);
                 
@@ -247,6 +248,9 @@
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 text-white";
             }
         }
+
+
+          
 
         function parseChartData(singleFeedArray) {
             if(!Array.isArray(singleFeedArray)) return [];
