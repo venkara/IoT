@@ -267,9 +267,7 @@
         }
 
         function connectLiveMQTT() {
-
-
-            feedNames = {
+            const feedNames = {
                 t1: "tres-lunas.1t", // Your explicit temperature feed names
                 h1: "tres-lunas.1h", // Your explicit humidity feed names
                 t2: "tres-lunas.2t",
@@ -280,11 +278,14 @@
             
             statusEl.innerText = "Connecting live...";
             statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
-            client = mqtt.connect('wss://://io.adafruit.com', { 
+
+            const brokerUrl ='wss://://io.adafruit.com';
+            const options =  { 
                 username: config.username, 
                 password: config.apiKey, 
                 clientId: 'dht_' + Math.random().toString(16).substr(2, 6) 
-            });
+            }
+            client = mqtt.connect(brokerUrl,options);
 
             const topicMap = {};
             const topics = sensors.map(s => { const t = `${config.username}/feeds/${feedNames[s]}`; topicMap[t] = s; return t; });
