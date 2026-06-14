@@ -89,7 +89,11 @@
         // The array position must perfectly align with our asynchronous REST map index locations:
         // Index:  0=t1, 1=h1, 2=t2, 3=h2, 4=t3, 5=h3
         const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
-        const colors = { t1: '#fbbf24', h1: '#22d3ee', t2: '#f43f5e', h2: '#2dd488', t3: '#34d399', h3: '#60a5fa' };
+        const colors = {
+            t1: '#38bdf8', h1: '#38bdf8', // Sky blue
+            t2: '#14b8a6', h2: '#14b8a6', // Teal
+            t3: '#818cf8', h3: '#818cf8'  // Indigo
+        };
         
         const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
         const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
@@ -120,8 +124,7 @@
         saveBtn.addEventListener('click', () => {
             config = {
                 username: document.getElementById('input-username').value.trim(),
-                apiKey: document.getElementById('input-key').value.trim(),
-                FEEDS   
+                apiKey: document.getElementById('input-key').value.trim()               
             };
             if(!config.username || !config.apiKey) { alert("Missing settings."); return; }
             localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
@@ -238,6 +241,12 @@
             })).reverse(); // Reverse chronology puts oldest data first on timeline axes
         }
 
+
+
+
+
+          
+
         function connectLiveMQTT() {
             statusEl.innerText = "Connecting live...";
             statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
@@ -251,7 +260,11 @@
             client = mqtt.connect(brokerUrl,options);
 
             const topicMap = {};
-            const topics = sensors.map(s => { const t = `${config.username}/feeds/${config.FEEDS[s]}`; topicMap[t] = s; return t; });
+            const topics = sensors.map(s => {
+                const t = `${config.username}/feeds/${FEEDS[s]}`;
+                topicMap[t] = s;
+                return t;
+            });
 
             client.on('connect', () => {
                 statusEl.innerText = "Live Connected";
