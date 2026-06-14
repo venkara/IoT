@@ -214,8 +214,9 @@
                     .then(res => {
                         if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
                         return res.json();
-                    })
-                );
+                    }); // <-- Added missing semicolon here
+                }); // <-- This closing "});" is what fixes the syntax crash!
+                
                 const allData = await Promise.all(requests);
                 
                 // Map tracking lines explicitly to correct array data points
