@@ -267,6 +267,17 @@
         }
 
         function connectLiveMQTT() {
+
+
+            feedNames = {
+                t1: "tres-lunas.1t", // Your explicit temperature feed names
+                h1: "tres-lunas.1h", // Your explicit humidity feed names
+                t2: "tres-lunas.2t",
+                h2: "tres-lunas.2h",
+                t3: "tres-lunas.3t",
+                h3: "tres-lunas.3h"       
+            };
+            
             statusEl.innerText = "Connecting live...";
             statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
             client = mqtt.connect('wss://://io.adafruit.com', { 
@@ -276,7 +287,7 @@
             });
 
             const topicMap = {};
-            const topics = sensors.map(s => { const t = `${config.username}/feeds/${config[s]}`; topicMap[t] = s; return t; });
+            const topics = sensors.map(s => { const t = `${config.username}/feeds/${feedNames[s]}`; topicMap[t] = s; return t; });
 
             client.on('connect', () => {
                 statusEl.innerText = "Live Connected";
