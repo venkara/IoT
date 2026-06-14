@@ -269,7 +269,7 @@
         function connectLiveMQTT() {
             statusEl.innerText = "Connecting live...";
             statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
-            client = mqtt.connect('wss://io.adafruit.com', { 
+            client = mqtt.connect('wss://://io.adafruit.com', { 
                 username: config.username, 
                 password: config.apiKey, 
                 clientId: 'dht_' + Math.random().toString(16).substr(2, 6) 
