@@ -19,7 +19,7 @@
     <div id="config-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
         <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
             <h2 class="text-xl font-bold mb-1">Connect Adafruit IO</h2>
-            <p class="text-sm text-slate-400 mb-4">Credentials are saved locally on this phone.</p>
+            <p class="text-sm text-slate-400 mb-4">Credentials are saved locally on this device.</p>
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IO Username</label>
@@ -28,35 +28,6 @@
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IO API Key</label>
                     <input id="input-key" type="password" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white">
-                </div>
-                <div class="hidden border-t border-slate-700/50 pt-3">
-                    <p class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Feed Keys (Adafruit IO Key names)</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-[10px] text-slate-500 block">Sensor 1 Temp</label>
-                            <input id="f-t1" type="text" value="t1" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-500 block">Sensor 1 Humidity</label>
-                            <input id="f-h1" type="text" value="h1" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-500 block">Sensor 2 Temp</label>
-                            <input id="f-t2" type="text" value="t2" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-500 block">Sensor 2 Humidity</label>
-                            <input id="f-h2" type="text" value="h2" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-500 block">Sensor 3 Temp</label>
-                            <input id="f-t3" type="text" value="t3" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-500 block">Sensor 3 Humidity</label>
-                            <input id="f-h3" type="text" value="h3" class="w-full p-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-white">
-                        </div>
-                    </div>
                 </div>
                 <button id="save-config-btn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg mt-2 transition-all active:scale-[0.98]">
                     Save & Load Dashboard
@@ -118,11 +89,20 @@
         // The array position must perfectly align with our asynchronous REST map index locations:
         // Index:  0=t1, 1=h1, 2=t2, 3=h2, 4=t3, 5=h3
         const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
-        const colors = { t1: '#fbbf24', h1: '#22d3ee', t2: '#f43f5e', h2: '#2dd4bf', t3: '#34d399', h3: '#60a5fa' };
+        const colors = { t1: '#fbbf24', h1: '#22d3ee', t2: '#f43f5e', h2: '#2dd488', t3: '#34d399', h3: '#60a5fa' };
         
         const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
         const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
+        const FEEDS = {
+            t1: "tres-lunas.1t",
+            h1: "tres-lunas.1h",
+            t2: "tres-lunas.2t",
+            h2: "tres-lunas.2h",
+            t3: "tres-lunas.3t",
+            h3: "tres-lunas.3h"       
+        };
 
+          
         function init() {
             const saved = localStorage.getItem('mqtt_dht11_config');
             if (saved) { 
@@ -141,15 +121,7 @@
             config = {
                 username: document.getElementById('input-username').value.trim(),
                 apiKey: document.getElementById('input-key').value.trim(),
-                //t1: document.getElementById('f-t1').value.trim(), h1: document.getElementById('f-h1').value.trim(),
-                //t2: document.getElementById('f-t2').value.trim(), h2: document.getElementById('f-h2').value.trim(),
-                //t3: document.getElementById('f-t3').value.trim(), h3: document.getElementById('f-h3').value.trim(),
-                t1: "tres-lunas.1t", // Your explicit temperature feed names
-                h1: "tres-lunas.1h", // Your explicit humidity feed names
-                t2: "tres-lunas.2t",
-                h2: "tres-lunas.2h",
-                t3: "tres-lunas.3t",
-                h3: "tres-lunas.3h"       
+                FEEDS   
             };
             if(!config.username || !config.apiKey) { alert("Missing settings."); return; }
             localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
@@ -171,7 +143,7 @@
             const opt = () => ({
                 responsive: true, maintainAspectRatio: false,
                 scales: {
-                    x: { type: 'time', time: { unit: 'day' }, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    x: { type: 'time', time: { unit: 'hour' }, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
                     y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
                 },
                 plugins: { legend: { labels: { color: '#f8fafc', font: { size: 10 } } } },
@@ -267,15 +239,6 @@
         }
 
         function connectLiveMQTT() {
-            const feedNames = {
-                t1: "tres-lunas.1t", // Your explicit temperature feed names
-                h1: "tres-lunas.1h", // Your explicit humidity feed names
-                t2: "tres-lunas.2t",
-                h2: "tres-lunas.2h",
-                t3: "tres-lunas.3t",
-                h3: "tres-lunas.3h"       
-            };
-            
             statusEl.innerText = "Connecting live...";
             statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
 
@@ -288,7 +251,7 @@
             client = mqtt.connect(brokerUrl,options);
 
             const topicMap = {};
-            const topics = sensors.map(s => { const t = `${config.username}/feeds/${feedNames[s]}`; topicMap[t] = s; return t; });
+            const topics = sensors.map(s => { const t = `${config.username}/feeds/${config.FEEDS[s]}`; topicMap[t] = s; return t; });
 
             client.on('connect', () => {
                 statusEl.innerText = "Live Connected";
