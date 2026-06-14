@@ -120,8 +120,7 @@
         </section>
 
     </main>
-
-        <script>
+    <script>
         let client = null;
         let config = {};
         let tempChart, humidityChart;
@@ -293,7 +292,7 @@
                 const val = parseFloat(message.toString());
                 if (isNaN(val)) return;
 
-                document.getElementById(`val-${key}`).innerText = val.toFixed(1);
+                document.getElementById(`val-${key}`).innerText = val;
 
                 const now = new Date();
                 if (key.startsWith('t')) {
@@ -312,4 +311,3 @@
     </script>
 </body>
 </html>
-
