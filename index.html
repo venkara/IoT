@@ -121,11 +121,13 @@
 
     </main>
 
-        <script>
+    <script>
         let client = null;
         let config = {};
         let tempChart, humidityChart;
 
+        // The array position must perfectly align with our asynchronous REST map:
+        // Index:  0=t1, 1=h1, 2=t2, 3=h2, 4=t3, 5=h3
         const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
         
         const colors = {
@@ -221,20 +223,22 @@
             const headers = { "X-AIO-Key": config.apiKey };
             
             try {
+                // Execute all API requests in parallel
                 const requests = sensors.map(s => 
-                    fetch(`https://io.adafruit.com/api/v2/${config.username}/feeds/${config[s]}/data?hours=168`, { headers })
+                    fetch(`https://adafruit.com{config.username}/feeds/${config[s]}/data?hours=168`, { headers })
                     .then(res => res.json())
                 );
                 
                 const allData = await Promise.all(requests);
                 
-                tempChart.data.datasets[0].data = parseChartData(allData[0]);
-                tempChart.data.datasets[1].data = parseChartData(allData[2]);
-                tempChart.data.datasets[2].data = parseChartData(allData[4]);
+                // Route the individual target array to its explicit dataset reference
+                tempChart.data.datasets[0].data = parseChartData(allData[0]); // t1
+                tempChart.data.datasets[1].data = parseChartData(allData[2]); // t2
+                tempChart.data.datasets[2].data = parseChartData(allData[4]); // t3
                 
-                humidityChart.data.datasets[0].data = parseChartData(allData[1]);
-                humidityChart.data.datasets[1].data = parseChartData(allData[3]);
-                humidityChart.data.datasets[2].data = parseChartData(allData[5]);
+                humidityChart.data.datasets[0].data = parseChartData(allData[1]); // h1
+                humidityChart.data.datasets[1].data = parseChartData(allData[3]); // h2
+                humidityChart.data.datasets[2].data = parseChartData(allData[5]); // h3
 
                 tempChart.update();
                 humidityChart.update();
@@ -248,9 +252,9 @@
             }
         }
 
-        function parseChartData(apiResponse) {
-            if(!Array.isArray(apiResponse)) return [];
-            return apiResponse.map(item => ({
+        function parseChartData(singleFeedArray) {
+            if(!Array.isArray(singleFeedArray)) return [];
+            return singleFeedArray.map(item => ({
                 x: new Date(item.created_at),
                 y: parseFloat(item.value)
             })).reverse();
@@ -260,7 +264,7 @@
             statusEl.innerText = "Connecting live...";
             statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
 
-            client = mqtt.connect(`wss://io.adafruit.com:443`, {
+            client = mqtt.connect(`wss://://adafruit.com`, {
                 username: config.username,
                 password: config.apiKey,
                 clientId: 'dht_dash_' + Math.random().toString(16).substr(2, 6)
