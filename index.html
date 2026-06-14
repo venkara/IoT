@@ -175,7 +175,7 @@
             try {
                 // Parallel fetch requests for all 6 target feeds
                 const requests = sensors.map(s => {
-                    const keyString = config[s];
+                    const keyString = FEEDS[s];
                     let apiPath = '';
                 
                     // If the feed key contains a dot (e.g. "tres-lunas.1h"), parse it out into a proper group URL
