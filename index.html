@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Sensor Climate Dashboard</title>
+    <title>TL Dashboard</title>
     <!-- Tailwind CSS for mobile layouts -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
@@ -54,19 +54,19 @@
         <!-- Live Numerical Status Cards Group -->
         <section class="grid grid-cols-3 gap-3">
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
-                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #1</span>
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #1</span>
                 <div class="text-xl font-black text-sky-400"><span id="val-t1">--</span><span class="text-xs font-normal">°C</span></div>
                 <div class="text-sm font-semibold text-sky-400 mt-0.5"><span id="val-h1">--</span><span class="text-xs font-normal">%</span></div>
             </div>
         
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
-                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #2</span>
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #2</span>
                 <div class="text-xl font-black text-teal-500"><span id="val-t2">--</span><span class="text-xs font-normal">°C</span></div>
                 <div class="text-sm font-semibold text-teal-500 mt-0.5"><span id="val-h2">--</span><span class="text-xs font-normal">%</span></div>
             </div>
         
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
-                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">DHT11 #3</span>
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #3</span>
                 <div class="text-xl font-black text-indigo-400"><span id="val-t3">--</span><span class="text-xs font-normal">°C</span></div>
                 <div class="text-sm font-semibold text-indigo-400 mt-0.5"><span id="val-h3">--</span><span class="text-xs font-normal">%</span></div>
             </div>
@@ -74,13 +74,13 @@
 
         <!-- Temperature Graph -->
         <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
-            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Temperature (Past Week)</h2>
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Temperature</h2>
             <div class="h-56 relative w-full"><canvas id="tempChart"></canvas></div>
         </section>
 
         <!-- Humidity Graph -->
         <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
-            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Humidity (Past Week)</h2>
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Humidity</h2>
             <div class="h-56 relative w-full"><canvas id="humidityChart"></canvas></div>
         </section>
     </main>
