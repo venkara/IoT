@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile MQTT Dashboard</title>
+    <!-- Tailwind CSS for modern, fluid mobile layout -->
+    <script src="https://jsdelivr.net"></script>
+    <!-- MQTT.js library for Browser WebSockets -->
+    <script src="https://unpkg.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 flex flex-col items-center">
+
+    <!-- Header Block -->
+    <header class="w-full max-w-md flex justify-between items-center mb-6">
+        <h1 class="text-xl font-bold tracking-wide">My IoT Node</h1>
+        <div id="status" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950 transition-all duration-300">
+            Connecting...
+        </div>
+    </header>
+
+    <!-- Mobile-First Grid Container -->
+    <main class="w-full max-w-md space-y-4">
+        
+        <!-- Card 1: Read-Only Sensor Value -->
+        <section class="bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700/50 flex flex-col justify-between">
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider">Temperature</h2>
+            <div class="flex items-baseline mt-2">
+                <span id="temp-value" class="text-5xl font-black text-emerald-400">--</span>
+                <span class="text-xl ml-1 text-slate-400">°C</span>
+            </div>
+        </section>
+
+        <!-- Card 2: Interactive Control Button -->
+        <section class="bg-slate-800 p-5 rounded-2xl shadow-xl border border-slate-700/50">
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-3">Relay Control</h2>
+            <button id="toggle-btn" class="w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition-all font-bold text-center tracking-wide shadow-lg shadow-indigo-600/20">
+                Turn On
+            </button>
+        </section>
+
+    </main>
+
+    <script>
+        // --- CONFIGURATION ---
+        const CONFIG = {
+            username: "YOUR_ADAFRUIT_IO_USERNAME", 
+            apiKey: "YOUR_ADAFRUIT_IO_KEY",
+            feeds: {
+                temperature: "temperature-feed-key", // Feed key, not the display name
+                relay: "relay-feed-key" 
+            }
+        };
+
+        // --- TOPICS SETUP ---
+        // Adafruit IO uses format: username/feeds/feed-key
+        const tempTopic = `${CONFIG.username}/feeds/${CONFIG.feeds.temperature}`;
+        const relayTopic = `${CONFIG.username}/feeds/${CONFIG.feeds.relay}`;
+
+        // --- STATE MANAGEMENT ---
+        let relayState = "OFF";
+
+        // --- DOM ELEMENTS ---
+        const statusEl = document.getElementById('status');
+        const tempEl = document.getElementById('temp-value');
+        const toggleBtn = document.getElementById('toggle-btn');
+
+        // --- MQTT CONNECTION ---
+        // Adafruit IO WebSockets utilize wss://://adafruit.com
+        const client = mqtt.connect(`wss://://adafruit.com`, {
+            username: CONFIG.username,
+            password: CONFIG.apiKey,
+            clientId: 'mobile_dash_' + Math.random().toString(16).substr(2, 8)
+        });
+
+        // Lifecycle Event: Connected
+        client.on('connect', () => {
+            statusEl.innerText = "Connected";
+            statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-slate-950";
+            
+            // Subscribe to our feeds to listen for changes
+            client.subscribe([tempTopic, relayTopic], (err) => {
+                if (err) console.error("Subscription error:", err);
+            });
+        });
+
+        // Lifecycle Event: Disconnected / Lost Connection
+        client.on('close', () => {
+            statusEl.innerText = "Offline";
+            statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500 text-slate-100";
+        });
+
+        // --- INCOMING MESSAGES ---
+        client.on('message', (topic, message) => {
+            const payload = message.toString();
+            
+            if (topic === tempTopic) {
+                tempEl.innerText = payload;
+            } 
+            else if (topic === relayTopic) {
+                relayState = payload.toUpperCase();
+                updateButtonUI();
+            }
+        });
+
+        // --- OUTGOING COMMANDS ---
+        toggleBtn.addEventListener('click', () => {
+            const nextState = (relayState === "ON") ? "OFF" : "ON";
+            // Publish command back to Adafruit IO feed
+            client.publish(relayTopic, nextState, { qos: 0, retain: false });
+        });
+
+        // UI Helper for State Updates
+        function updateButtonUI() {
+            if (relayState === "ON") {
+                toggleBtn.innerText = "Turn Off";
+                toggleBtn.className = "w-full py-4 rounded-xl bg-rose-600 hover:bg-rose-500 active:scale-[0.98] transition-all font-bold text-center tracking-wide shadow-lg shadow-rose-600/20";
+            } else {
+                toggleBtn.innerText = "Turn On";
+                toggleBtn.className = "w-full py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] transition-all font-bold text-center tracking-wide shadow-lg shadow-indigo-600/20";
+            }
+        }
+    </script>
+</body>
+</html>
