@@ -141,9 +141,15 @@
             config = {
                 username: document.getElementById('input-username').value.trim(),
                 apiKey: document.getElementById('input-key').value.trim(),
-                t1: document.getElementById('f-t1').value.trim(), h1: document.getElementById('f-h1').value.trim(),
-                t2: document.getElementById('f-t2').value.trim(), h2: document.getElementById('f-h2').value.trim(),
-                t3: document.getElementById('f-t3').value.trim(), h3: document.getElementById('f-h3').value.trim(),
+                //t1: document.getElementById('f-t1').value.trim(), h1: document.getElementById('f-h1').value.trim(),
+                //t2: document.getElementById('f-t2').value.trim(), h2: document.getElementById('f-h2').value.trim(),
+                //t3: document.getElementById('f-t3').value.trim(), h3: document.getElementById('f-h3').value.trim(),
+                t1: "tres-lunas.1t", // Your explicit temperature feed names
+                h1: "tres-lunas.1h", // Your explicit humidity feed names
+                t2: "tres-lunas.2t",
+                h2: "tres-lunas.2h",
+                t3: "tres-lunas.3t",
+                h3: "tres-lunas.3h"       
             };
             if(!config.username || !config.apiKey) { alert("Missing settings."); return; }
             localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
