@@ -93,11 +93,11 @@
         // Index:  0=t1, 1=h1, 2=t2, 3=h2, 4=t3, 5=h3
         const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
         const colors = {
-            t1: '#38bdf8', h1: '#38bdf8', // Sky blue
-            t2: '#14b8a6', h2: '#14b8a6', // Teal
-            t3: '#818cf8', h3: '#818cf8'  // Indigo
+            t1: '#0ea5ff', h1: '#0ea5ff', // more saturated blue
+            t2: '#14b8a6', h2: '#14b8a6', // leave teal alone
+            t3: '#a855f7', h3: '#a855f7'  // shift toward purple
         };
-        
+                
         const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
         const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
         const FEEDS = {
