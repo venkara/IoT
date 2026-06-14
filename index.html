@@ -209,7 +209,7 @@
                         apiPath = `feeds/${keyString}`;
                     }
                 
-                    return fetch(`https://adafruit.com{config.username}/${apiPath}/data?hours=168`, { 
+                    return fetch(`https://adafruit.com/{config.username}/${apiPath}/data?hours=168`, { 
                         headers: { "X-AIO-Key": config.apiKey } 
                     })
                     .then(res => {
