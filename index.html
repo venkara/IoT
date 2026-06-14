@@ -180,8 +180,7 @@
                 if (client) client.end();
                 if (tempChart) tempChart.destroy();
                 if (humidityChart) humidityChart.destroy();
-               //  sensors.forEach(s => document.getElementById(`val-${s}`).innerText = "--");
-                sensors.forEach(s => document.getElementById(`val-${s}`).innerText = val.toFixed(1);
+                sensors.forEach(s => document.getElementById(`val-${s}`).innerText = "--");
                 init();
             }
         });
@@ -294,7 +293,7 @@
                 const val = parseFloat(message.toString());
                 if (isNaN(val)) return;
 
-                document.getElementById(`val-${key}`).innerText = val;
+                document.getElementById(`val-${key}`).innerText = val.toFixed(1);
 
                 const now = new Date();
                 if (key.startsWith('t')) {
