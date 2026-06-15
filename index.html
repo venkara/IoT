@@ -193,7 +193,7 @@
                         apiPath = `feeds/${keyString}`;
                     }
                 
-                    return fetch(`https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data?hours=168&max_results=1000&resolution=60`, { 
+                    return fetch(`https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data?hours=168&max_results=1000`, { 
                         headers: { "X-AIO-Key": config.apiKey } 
                     })
                     .then(res => {
