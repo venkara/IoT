@@ -184,27 +184,19 @@
                     const keyString = FEEDS[s];
                     let apiPath = '';
                 
-                    // If the feed key contains a dot (e.g. "tres-lunas.1h"), parse it out into a proper group URL
                     if (keyString.includes('.')) {
                         const [groupKey, feedKey] = keyString.split('.');
                         apiPath = `groups/${groupKey}/feeds/${feedKey}`;
                     } else {
-                        // Otherwise, fallback to a standard un-grouped root feed string
                         apiPath = `feeds/${keyString}`;
                     }
                 
-                    return fetch(`https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data?hours=168&max_results=2500&resolution=60`, { 
-                        headers: { "X-AIO-Key": config.apiKey } 
-                    })
-                    .then(res => {
-                        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-                        return res.json();
-                    });
-                }); 
+                    return fetchFeedData(apiPath, 168, 2500);
+                });
                 
                 const allData = await Promise.all(requests);
                 // DEBUG
-                console.log(allData[0][0]);
+                //console.log(allData[0][0]);
                 
                 // Map tracking lines explicitly to correct array data points
                 tempChart.data.datasets[0].data = parseChartData(allData[0]); // t1
@@ -234,7 +226,41 @@
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 text-white";
             }
         }
-
+        async function fetchFeedData(apiPath, hours = 168, targetCount = 2500) {
+            let allPoints = [];
+            let endTime = null;
+        
+            while (allPoints.length < targetCount) {
+                let url =
+                    `https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data` +
+                    `?hours=${hours}&max_results=1000`;
+        
+                if (endTime) {
+                    url += `&end_time=${encodeURIComponent(endTime)}`;
+                }
+        
+                const res = await fetch(url, {
+                    headers: { "X-AIO-Key": config.apiKey }
+                });
+        
+                if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        
+                const page = await res.json();
+        
+                if (!Array.isArray(page) || page.length === 0) break;
+        
+                allPoints = allPoints.concat(page);
+        
+                // Adafruit returns newest-to-oldest.
+                // The last item is the oldest point in this page.
+                const oldestPoint = page[page.length - 1];
+                endTime = oldestPoint.created_at;
+        
+                if (page.length < 1000) break;
+            }
+        
+            return allPoints;
+        }
 
           
 
