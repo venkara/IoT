@@ -193,17 +193,19 @@
                         apiPath = `feeds/${keyString}`;
                     }
                 
-                    return fetch(`https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data?hours=168&max_results=2500`, { 
+                    return fetch(`https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data?hours=168&max_results=2500&resolution=60`, { 
                         headers: { "X-AIO-Key": config.apiKey } 
                     })
                     .then(res => {
                         if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
                         return res.json();
                     });
-                }); // <-- THIS LINE RIGHT HERE FIXES THE EXTRA PARENTHESIS ERROR
+                }); 
                 
                 const allData = await Promise.all(requests);
+                // DEBUG
                 console.log(allData[0][0]);
+                
                 // Map tracking lines explicitly to correct array data points
                 tempChart.data.datasets[0].data = parseChartData(allData[0]); // t1
                 tempChart.data.datasets[1].data = parseChartData(allData[2]); // t2
