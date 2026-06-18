@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TL Dashboard 1.004</title>
+    <title>TL Dashboard 1.005</title>
     <!-- Tailwind CSS for mobile layouts -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
@@ -347,7 +347,7 @@
                 lastUpdate[key] = now;
                 
                 document.getElementById(`val-${key}`).innerText = val.toFixed(1);
-`
+
                if (key.startsWith('t')) {
                     const idx = key === 't1' ? 0 : key === 't2' ? 1 : 2;
                     tempChart.data.datasets[idx].data.push({ x: now, y: val }); tempChart.update('none');
