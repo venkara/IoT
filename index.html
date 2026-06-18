@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TL Dashboard 1.005</title>
+    <title>TL Dashboard 1.05</title>
     <!-- Tailwind CSS for mobile layouts -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
@@ -225,9 +225,29 @@
                 // Populate current readings display with precise decimal data from element 0 (newest point)
                 sensors.forEach((s, idx) => {
                     const feedPoints = allData[idx];
+                
                     if (Array.isArray(feedPoints) && feedPoints.length > 0) {
-                        const lastVal = parseFloat(feedPoints[0].value);
-                        if (!isNaN(lastVal)) document.getElementById(`val-${s}`).innerText = lastVal.toFixed(1);
+                        const latestPoint = feedPoints.find(p => {
+                            const v = parseFloat(p.value);
+                            return !isNaN(v) && v !== 0;
+                        });
+                
+                        if (latestPoint) {
+                            const lastVal = parseFloat(latestPoint.value);
+                            const lastTime = new Date(latestPoint.created_at);
+                
+                            document.getElementById(`val-${s}`).innerText =
+                                lastVal.toFixed(1);
+                
+                            lastUpdate[s] = lastTime;
+                
+                            const sensorNum = s.slice(1);
+                            document.getElementById(`time-${sensorNum}`).innerText =
+                                lastTime.toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                            });
+                        }
                     }
                 });
                 
