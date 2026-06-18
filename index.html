@@ -57,18 +57,22 @@
                 <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #1</span>
                 <div class="text-xl font-black text-blue-500"><span id="val-t1">--</span><span class="text-xs font-normal">°F</span></div>
                 <div class="text-sm font-semibold text-blue-500 mt-0.5"><span id="val-h1">--</span><span class="text-xs font-normal">%</span></div>
+                <div class="text-[10px] text-slate-500 mt-1" id="time-1">--</div>
             </div>
+            
         
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                 <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #2</span>
                 <div class="text-xl font-black text-teal-500"><span id="val-t2">--</span><span class="text-xs font-normal">°F</span></div>
                 <div class="text-sm font-semibold text-teal-500 mt-0.5"><span id="val-h2">--</span><span class="text-xs font-normal">%</span></div>
+                <div class="text-[10px] text-slate-500 mt-1" id="time-2">--</div>
             </div>
         
             <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                 <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #3</span>
                 <div class="text-xl font-black text-purple-500"><span id="val-t3">--</span><span class="text-xs font-normal">°F</span></div>
                 <div class="text-sm font-semibold text-purple-500 mt-0.5"><span id="val-h3">--</span><span class="text-xs font-normal">%</span></div>
+                <div class="text-[10px] text-slate-500 mt-1" id="time-3">--</div>
             </div>
         </section>
 
@@ -109,6 +113,14 @@
             h3: "tres-lunas.3h"       
         };
 
+        const lastUpdate = {
+            t1: null,
+            h1: null,
+            t2: null,
+            h2: null,
+            t3: null,
+            h3: null
+        };
           
         function init() {
             const saved = localStorage.getItem('mqtt_dht11_config');
@@ -319,11 +331,18 @@
                 statusEl.innerText = "Live Offline";
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500 text-slate-100";
             });
-            client.on('message', (topic, msg) => {
-                const key = topicMap[topic], val = parseFloat(msg.toString());
-                if (isNaN(val)) return;
+           client.on('message', (topic, msg) => {
+                const key = topicMap[topic];
+                const val = parseFloat(msg.toString());
+            
+                if (isNaN(val) || val === 0) return;
+            
+                const now = new Date();
+            
+                lastUpdate[key] = now;
                 
                 document.getElementById(`val-${key}`).innerText = val.toFixed(1);
+                document.getElementById(`val-${key}`).innerText = val.toFixed(1);now
                 const now = new Date();
                 if (key.startsWith('t')) {
                     const idx = key === 't1' ? 0 : key === 't2' ? 1 : 2;
