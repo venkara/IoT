@@ -191,7 +191,7 @@
                         apiPath = `feeds/${keyString}`;
                     }
                 
-                    return fetchFeedData(apiPath, 168, 2500);
+                    return fetchFeedData(apiPath, 2500);
                 });
                 
                 const allData = await Promise.all(requests);
@@ -226,17 +226,22 @@
                 statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 text-white";
             }
         }
-        async function fetchFeedData(apiPath, hours = 168, targetCount = 2500) {
+
+          
+        async function fetchFeedData(apiPath, targetCount = 2500) {
             let allPoints = [];
             let endTime = null;
         
             while (allPoints.length < targetCount) {
                 let url =
                     `https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data` +
-                    `?hours=${hours}&max_results=1000`;
+                    `?max_results=1000`;
         
                 if (endTime) {
                     url += `&end_time=${encodeURIComponent(endTime)}`;
+                } else {
+                    // Only constrain the first page to the last week.
+                    url += `&hours=168`;
                 }
         
                 const res = await fetch(url, {
@@ -246,17 +251,25 @@
                 if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
         
                 const page = await res.json();
-        
                 if (!Array.isArray(page) || page.length === 0) break;
         
                 allPoints = allPoints.concat(page);
         
-                // Adafruit returns newest-to-oldest.
-                // The last item is the oldest point in this page.
-                const oldestPoint = page[page.length - 1];
-                endTime = oldestPoint.created_at;
+                console.log(
+                    apiPath,
+                    "page:", page.length,
+                    "newest:", page[0]?.created_at,
+                    "oldest:", page[page.length - 1]?.created_at,
+                    "total:", allPoints.length
+                );
         
                 if (page.length < 1000) break;
+        
+                const oldestPoint = page[page.length - 1];
+        
+                // Step slightly before the oldest point so we don't fetch it again.
+                const oldestMs = new Date(oldestPoint.created_at).getTime();
+                endTime = new Date(oldestMs - 1000).toISOString();
             }
         
             return allPoints;
