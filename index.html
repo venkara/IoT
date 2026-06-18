@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TL Dashboard 1.0</title>
+    <title>TL Dashboard 1.001</title>
     <!-- Tailwind CSS for mobile layouts -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
@@ -235,7 +235,7 @@
             while (allPoints.length < targetCount) {
                 let url =
                     `https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data` +
-                    `?max_results=1000`;
+                    `?limit=1000`;
         
                 if (endTime) {
                     url += `&end_time=${encodeURIComponent(endTime)}`;
