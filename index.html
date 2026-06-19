@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TL Dashboard 1.05</title>
+    <title>TL Dashboard 1.06</title>
     <!-- Tailwind CSS for mobile layouts -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
@@ -76,6 +76,34 @@
             </div>
         </section>
 
+        
+        <section class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 space-y-3">
+            <div>
+                <label class="block text-[10px] text-slate-400 uppercase mb-1">Range</label>
+                <select id="range-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm">
+                    <option value="4">4 hours</option>
+                    <option value="24">Day</option>
+                    <option value="168" selected>Week</option>
+                    <option value="720">Month</option>
+                    <option value="8760">Year</option>
+                </select>
+            </div>
+        
+            <div>
+                <label class="block text-[10px] text-slate-400 uppercase mb-1">Bin size</label>
+                <select id="bin-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm">
+                    <option value="5">5 min</option>
+                    <option value="30">30 min</option>
+                    <option value="60" selected>1 hour</option>
+                    <option value="240">4 hours</option>
+                    <option value="720">12 hours</option>
+                    <option value="1440">1 day</option>
+                    <option value="10080">1 week</option>
+                </select>
+            </div>
+        </section>
+        
+        
         <!-- Temperature Graph -->
         <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
             <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Temperature</h2>
@@ -101,7 +129,10 @@
             t2: '#14b8a6', h2: '#14b8a6', // leave teal alone
             t3: '#a855f7', h3: '#a855f7'  // shift toward purple
         };
-                
+        const rangeSelect = document.getElementById('range-select');
+        const binSelect = document.getElementById('bin-select');
+        let latestAllData = null;
+        
         const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
         const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
         const FEEDS = {
@@ -145,7 +176,7 @@
             localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
             modalEl.classList.add('hidden'); buildCharts(); loadHistoricalData();
         });
-
+        
         disconnectBtn.addEventListener('click', () => {
             if (confirm("Clear settings?")) {
                 localStorage.removeItem('mqtt_dht11_config');
@@ -156,6 +187,10 @@
                 init();
             }
         });
+
+        rangeSelect.addEventListener('change', loadHistoricalData);
+        binSelect.addEventListener('change', () => {
+            if (latestAllData) updateChartsFromData(latestAllData);
 
         function buildCharts() {
             const opt = () => ({
@@ -187,7 +222,21 @@
             });
         }
 
-
+        function updateChartsFromData(allData) {
+            const binMinutes = parseInt(binSelect.value, 10);
+        
+            tempChart.data.datasets[0].data = parseChartData(allData[0], binMinutes);
+            tempChart.data.datasets[1].data = parseChartData(allData[2], binMinutes);
+            tempChart.data.datasets[2].data = parseChartData(allData[4], binMinutes);
+        
+            humidityChart.data.datasets[0].data = parseChartData(allData[1], binMinutes);
+            humidityChart.data.datasets[1].data = parseChartData(allData[3], binMinutes);
+            humidityChart.data.datasets[2].data = parseChartData(allData[5], binMinutes);
+        
+            tempChart.update();
+            humidityChart.update();
+        }
+            
         async function loadHistoricalData() {
             statusEl.innerText = "Loading history...";
             try {
@@ -203,25 +252,17 @@
                         apiPath = `feeds/${keyString}`;
                     }
                 
-                    return fetchFeedData(apiPath, 2500);
+                    return fetchFeedData(apiPath, hours, targetCount);
                 });
                 
                 const allData = await Promise.all(requests);
                 // DEBUG
                 //console.log(allData[0][0]);
+                const hours = parseInt(rangeSelect.value, 10);
+                const targetCount = Math.ceil((hours * 60) / 5) + 100;
                 
-                // Map tracking lines explicitly to correct array data points
-                tempChart.data.datasets[0].data = parseChartData(allData[0]); // t1
-                tempChart.data.datasets[1].data = parseChartData(allData[2]); // t2
-                tempChart.data.datasets[2].data = parseChartData(allData[4]); // t3
-                
-                humidityChart.data.datasets[0].data = parseChartData(allData[1]); // h1
-                humidityChart.data.datasets[1].data = parseChartData(allData[3]); // h2
-                humidityChart.data.datasets[2].data = parseChartData(allData[5]); // h3
-
-                tempChart.update();
-                humidityChart.update();
-                
+                latestAllData = allData;
+                updateChartsFromData(allData);
                 // Populate current readings display with precise decimal data from element 0 (newest point)
                 sensors.forEach((s, idx) => {
                     const feedPoints = allData[idx];
@@ -260,7 +301,7 @@
         }
 
           
-        async function fetchFeedData(apiPath, targetCount = 2500) {
+        async function fetchFeedData(apiPath, hours = 168, targetCount = 2500) {
             let allPoints = [];
             let endTime = null;
         
@@ -309,14 +350,35 @@
 
           
 
-        function parseChartData(singleFeedArray) {
-            if(!Array.isArray(singleFeedArray)) return [];
-            return singleFeedArray.map(i => ({ 
-                x: new Date(i.created_at), 
-                y: parseFloat(i.value) 
-            })).reverse(); // Reverse chronology puts oldest data first on timeline axes
+        function parseChartData(singleFeedArray, binMinutes = 60) {
+            if (!Array.isArray(singleFeedArray)) return [];
+        
+            const binMs = binMinutes * 60 * 1000;
+            const bins = new Map();
+        
+            singleFeedArray.forEach(i => {
+                const value = parseFloat(i.value);
+                if (isNaN(value) || value === 0) return;
+        
+                const time = new Date(i.created_at).getTime();
+                const binStart = Math.floor(time / binMs) * binMs;
+        
+                if (!bins.has(binStart)) {
+                    bins.set(binStart, { sum: 0, count: 0 });
+                }
+        
+                const bin = bins.get(binStart);
+                bin.sum += value;
+                bin.count += 1;
+            });
+        
+            return Array.from(bins.entries())
+                .map(([binStart, bin]) => ({
+                    x: new Date(Number(binStart)),
+                    y: bin.sum / bin.count
+                }))
+                .sort((a, b) => a.x - b.x);
         }
-
 
 
 
