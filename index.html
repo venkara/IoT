@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TL Dashboard 1.06</title>
+    <title>TL Dashboard 1.07</title>
     <!-- Tailwind CSS for mobile layouts -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
@@ -191,7 +191,9 @@
         rangeSelect.addEventListener('change', loadHistoricalData);
         binSelect.addEventListener('change', () => {
             if (latestAllData) updateChartsFromData(latestAllData);
+        });
 
+          
         function buildCharts() {
             const opt = () => ({
                 responsive: true, maintainAspectRatio: false,
@@ -241,6 +243,9 @@
             statusEl.innerText = "Loading history...";
             try {
                 // Parallel fetch requests for all 6 target feeds
+                const hours = parseInt(rangeSelect.value, 10);
+                const targetCount = Math.ceil((hours * 60) / 5) + 100;
+                
                 const requests = sensors.map(s => {
                     const keyString = FEEDS[s];
                     let apiPath = '';
@@ -258,8 +263,7 @@
                 const allData = await Promise.all(requests);
                 // DEBUG
                 //console.log(allData[0][0]);
-                const hours = parseInt(rangeSelect.value, 10);
-                const targetCount = Math.ceil((hours * 60) / 5) + 100;
+
                 
                 latestAllData = allData;
                 updateChartsFromData(allData);
@@ -314,7 +318,7 @@
                     url += `&end_time=${encodeURIComponent(endTime)}`;
                 } else {
                     // Only constrain the first page to the last week.
-                    url += `&hours=168`;
+                    url += `&hours=${hours}`;
                 }
         
                 const res = await fetch(url, {
