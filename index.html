@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TL Dashboard 1.07</title>
+    <title>TL Dashboard 1.08</title>
     <!-- Tailwind CSS for mobile layouts -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- MQTT.js library -->
@@ -357,6 +357,9 @@
         function parseChartData(singleFeedArray, binMinutes = 60) {
             if (!Array.isArray(singleFeedArray)) return [];
         
+            const rangeHours = parseInt(rangeSelect.value, 10);
+            const cutoffMs = Date.now() - rangeHours * 60 * 60 * 1000;
+        
             const binMs = binMinutes * 60 * 1000;
             const bins = new Map();
         
@@ -365,6 +368,8 @@
                 if (isNaN(value) || value === 0) return;
         
                 const time = new Date(i.created_at).getTime();
+                if (time < cutoffMs) return;
+        
                 const binStart = Math.floor(time / binMs) * binMs;
         
                 if (!bins.has(binStart)) {
