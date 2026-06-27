@@ -438,12 +438,54 @@
         }
         
         function downloadCurrentChartData() {
+            const table = new Map();
+        
+            function addDataset(chart, columnName, datasetIndex) {
+                chart.data.datasets[datasetIndex].data.forEach(point => {
+                    const key = point.x.getTime();
+        
+                    if (!table.has(key)) {
+                        table.set(key, {
+                            Timestamp: formatTimestamp(point.x),
+                            Temp1: "",
+                            Temp2: "",
+                            Temp3: "",
+                            Humidity1: "",
+                            Humidity2: "",
+                            Humidity3: ""
+                        });
+                    }
+        
+                    table.get(key)[columnName] = point.y;
+                });
+            }
+        
+            addDataset(tempChart, "Temp1", 0);
+            addDataset(tempChart, "Temp2", 1);
+            addDataset(tempChart, "Temp3", 2);
+        
+            addDataset(humidityChart, "Humidity1", 0);
+            addDataset(humidityChart, "Humidity2", 1);
+            addDataset(humidityChart, "Humidity3", 2);
+        
             const rows = [
-                ["measurement", "sensor", "timestamp", "value"]
+                ["Timestamp", "Temp1", "Temp2", "Temp3", "Humidity1", "Humidity2", "Humidity3"]
             ];
         
-            addChartRows(rows, "temperature", tempChart);
-            addChartRows(rows, "humidity", humidityChart);
+            Array.from(table.keys())
+                .sort((a, b) => a - b)
+                .forEach(key => {
+                    const r = table.get(key);
+                    rows.push([
+                        r.Timestamp,
+                        r.Temp1,
+                        r.Temp2,
+                        r.Temp3,
+                        r.Humidity1,
+                        r.Humidity2,
+                        r.Humidity3
+                    ]);
+                });
         
             const csv = rows
                 .map(row => row.map(csvEscape).join(","))
@@ -466,7 +508,7 @@
                     rows.push([
                         measurement,
                         dataset.label,
-                        point.x.toISOString(),
+                        formatTimestamp(point.x),
                         point.y
                     ]);
                 });
@@ -480,7 +522,12 @@
             }
             return s;
         }
-                  
+        function formatTimestamp(date) {
+            const pad = n => String(n).padStart(2, '0');
+        
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+                   `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        }                 
 
         function connectLiveMQTT() {
             statusEl.innerText = "Connecting live...";
