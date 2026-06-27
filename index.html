@@ -120,7 +120,10 @@
                 </div>
             </div>
         </section>
-
+        <button id="download-csv-btn"
+            class="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-lg p-2 text-sm font-semibold">
+            Download CSV
+        </button>
         
     </main>
 
@@ -140,6 +143,9 @@
         const binSelect = document.getElementById('bin-select');
         let latestAllData = null;
         
+          const downloadCsvBtn = document.getElementById('download-csv-btn');
+        downloadCsvBtn.addEventListener('click', downloadCurrentChartData);
+          
         const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
         const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
         const FEEDS = {
@@ -430,9 +436,51 @@
                 chart.options.scales.x.time.stepSize = stepSize;
             });
         }
-
-
-          
+        
+        function downloadCurrentChartData() {
+            const rows = [
+                ["measurement", "sensor", "timestamp", "value"]
+            ];
+        
+            addChartRows(rows, "temperature", tempChart);
+            addChartRows(rows, "humidity", humidityChart);
+        
+            const csv = rows
+                .map(row => row.map(csvEscape).join(","))
+                .join("\n");
+        
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+        
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `tres-lunas-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        
+            URL.revokeObjectURL(url);
+        }
+        
+        function addChartRows(rows, measurement, chart) {
+            chart.data.datasets.forEach(dataset => {
+                dataset.data.forEach(point => {
+                    rows.push([
+                        measurement,
+                        dataset.label,
+                        point.x.toISOString(),
+                        point.y
+                    ]);
+                });
+            });
+        }
+        
+        function csvEscape(value) {
+            const s = String(value);
+            if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+                return `"${s.replaceAll('"', '""')}"`;
+            }
+            return s;
+        }
+                  
 
         function connectLiveMQTT() {
             statusEl.innerText = "Connecting live...";
