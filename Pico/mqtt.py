@@ -13,8 +13,6 @@ def setup_node_identity():
     global mqtt_root, mqtt_client_id, mqtt_topic_temperature, mqtt_topic_humidity
    
     wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-
     mac = wlan.config('mac')
     node_suffix = ''.join('{:02X}'.format(b) for b in mac[-3:])
 

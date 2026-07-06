@@ -27,67 +27,43 @@ def wifi_status_string(status_code):
     return status_strings.get(status_code, "Unknown") 
 
 
-def initialize_wifi(ssid, password):
+def initialize_wifi(ssid, password, timeout=30):
     wlan = network.WLAN(network.STA_IF)
-     
+    wlan.active(True)
+    wait_with_wdt(1)
     # Connect to the network
     wlan.connect(ssid, password)
 
     # Wait for Wi-Fi connection
-    connection_timeout = 8
-    while connection_timeout > 0:
-        status = wlan.status()
-        if (status >= 3) or (status < 0):
+
+    while timeout > 0:
+        wifi_status = wlan.status()
+        if wifi_status >= 3:
             break
-        connection_timeout -= 1
-        print(f'Waiting for Wi-Fi connection... {wifi_status_string(status)}')
+        timeout -= 1
+        print(f'Waiting for Wi-Fi connection... {wifi_status_string(wifi_status)}')
         wait_with_wdt(1)
 
     # Check if connection is successful
-    if status == 3:
+    if wifi_status != 3:
+        print(f'Failed to connect: {wifi_status_string(wifi_status)}')
+        return False
+    else:
         network_info = wlan.ifconfig()
         print('Connection successful! IP address:', network_info[0])
         print("RSSI:", wlan.status('rssi'))
-        return True
-    
-    wlan.disconnect()
-    return False
 
-
-
-def connect_wifi_once(ssid, password):
-    wlan = network.WLAN(network.STA_IF)
-
-    wlan.active(False)
-    wait_with_wdt(1)
-
-    wlan.active(True)
-    wait_with_wdt(1)
-
-    wlan.connect(ssid, password)
-
-    feed_wdt()
-
-    status = wlan.status()
-    print("WiFi:", wifi_status_string(status))
-
-    if status == 3:
-        print("Connection successful! IP:", wlan.ifconfig()[0])
-        print("RSSI:", wlan.status("rssi"))
         return True
 
-    wlan.disconnect()
-    wlan.active(False)
-    return False
+
 
 
 def reconnect_wifi(ssid, password):
-
     for delay, attempts in BACKOFF_DELAYS:
-
         for _ in range(attempts):
-            if connect_wifi_once(ssid, password):
+            if initialize_wifi(ssid, password, timeout=30):
                 return True
+
             print(f"Waiting {delay} seconds before next attempt...")
             wait_with_wdt(delay)
 
