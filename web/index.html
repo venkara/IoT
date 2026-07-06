@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TL Dashboard 1.12</title>
+    <!-- Tailwind CSS for mobile layouts -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- MQTT.js library -->
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <!-- Chart.js library for drawing our responsive graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Date Adapter to parse time series strings correctly -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <link rel="icon" href="TL.ico" sizes="any">
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen p-4 flex flex-col items-center">
+
+    <!-- 1. CREDENTIALS CONFIGURATION MODAL -->
+    <div id="config-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-800 p-6 rounded-2xl w-full max-w-md border border-slate-700 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl font-bold mb-1">Connect Adafruit IO</h2>
+            <p class="text-sm text-slate-400 mb-4">Credentials are saved locally on this device.</p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IO Username</label>
+                    <input id="input-username" type="text" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IO API Key</label>
+                    <input id="input-key" type="password" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:border-indigo-500 text-white">
+                </div>
+                <button id="save-config-btn" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg mt-2 transition-all active:scale-[0.98]">
+                    Save & Load Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MAIN DASHBOARD INTERFACE -->
+    <header class="w-full max-w-md flex justify-between items-center mb-6">
+        <div>
+            <h1 class=" text-xl font-bold tracking-wide">Climate Network</h1>
+            <button id="disconnect-btn" class="hidden text-xs text-slate-500 hover:text-rose-400 underline transition-colors cursor-pointer mt-0.5 block">
+                Clear Credentials
+            </button>
+        </div>
+        <div id="status" class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950 transition-all duration-300">
+            Initializing...
+        </div>
+    </header>
+
+    <main class="w-full max-w-md space-y-6 pb-12">
+        <!-- Live Numerical Status Cards Group -->
+        <section class="grid grid-cols-3 gap-3">
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #1</span>
+                <div class="text-xl font-black text-blue-500"><span id="val-t1">--</span><span class="text-xs font-normal">°F</span></div>
+                <div class="text-sm font-semibold text-blue-500 mt-0.5"><span id="val-h1">--</span><span class="text-xs font-normal">%</span></div>
+                <div class="text-[10px] text-slate-500 mt-1" id="time-1">--</div>
+            </div>
+            
+        
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #2</span>
+                <div class="text-xl font-black text-teal-500"><span id="val-t2">--</span><span class="text-xs font-normal">°F</span></div>
+                <div class="text-sm font-semibold text-teal-500 mt-0.5"><span id="val-h2">--</span><span class="text-xs font-normal">%</span></div>
+                <div class="text-[10px] text-slate-500 mt-1" id="time-2">--</div>
+            </div>
+        
+            <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
+                <span class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1">Sensor #3</span>
+                <div class="text-xl font-black text-purple-500"><span id="val-t3">--</span><span class="text-xs font-normal">°F</span></div>
+                <div class="text-sm font-semibold text-purple-500 mt-0.5"><span id="val-h3">--</span><span class="text-xs font-normal">%</span></div>
+                <div class="text-[10px] text-slate-500 mt-1" id="time-3">--</div>
+            </div>
+        </section>
+        
+        
+        <!-- Temperature Graph -->
+        <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Temperature</h2>
+            <div class="h-56 relative w-full"><canvas id="tempChart"></canvas></div>
+        </section>
+
+        <!-- Humidity Graph -->
+        <section class="bg-slate-800 p-4 rounded-2xl shadow-xl border border-slate-700/50">
+            <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider mb-2">Humidity</h2>
+            <div class="h-56 relative w-full"><canvas id="humidityChart"></canvas></div>
+        </section>
+
+        
+        <section class="bg-slate-800 p-3 rounded-xl border border-slate-700/50">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-[10px] text-slate-400 uppercase mb-1">
+                        Range
+                    </label>
+                    <select id="range-select"
+                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm">
+                        <option value="4">4 hours</option>
+                        <option value="24">Day</option>
+                        <option value="168" selected>Week</option>
+                        <option value="720">Month</option>
+                        <option value="8760">Year</option>
+                    </select>
+                </div>
+        
+                <div>
+                <label class="block text-[10px] text-slate-400 uppercase mb-1">Bin size</label>
+                <select id="bin-select" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-sm">
+                    <option value="5">5 min</option>
+                    <option value="30">30 min</option>
+                    <option value="60" selected>1 hour</option>
+                    <option value="240">4 hours</option>
+                    <option value="720">12 hours</option>
+                    <option value="1440">1 day</option>
+                    <option value="10080">1 week</option>
+                </select>
+                </div>
+            </div>
+        </section>
+        <button id="download-csv-btn"
+            class="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-lg p-2 text-sm font-semibold">
+            Download CSV
+        </button>
+        
+    </main>
+
+    
+      <script>
+        let client = null, config = {}, tempChart, humidityChart;
+        
+        // The array position must perfectly align with our asynchronous REST map index locations:
+        // Index:  0=t1, 1=h1, 2=t2, 3=h2, 4=t3, 5=h3
+        const sensors = ['t1', 'h1', 't2', 'h2', 't3', 'h3'];
+        const colors = {
+            t1: '#0e77ff', h1: '#0e77ff', // more saturated blue
+            t2: '#14b8a6', h2: '#14b8a6', // leave teal alone
+            t3: '#a855f7', h3: '#a855f7'  // shift toward purple
+        };
+        const rangeSelect = document.getElementById('range-select');
+        const binSelect = document.getElementById('bin-select');
+        let latestAllData = null;
+        
+          const downloadCsvBtn = document.getElementById('download-csv-btn');
+        downloadCsvBtn.addEventListener('click', downloadCurrentChartData);
+          
+        const modalEl = document.getElementById('config-modal'), statusEl = document.getElementById('status');
+        const saveBtn = document.getElementById('save-config-btn'), disconnectBtn = document.getElementById('disconnect-btn');
+        const FEEDS = {
+            t1: "tres-lunas.1t",
+            h1: "tres-lunas.1h",
+            t2: "tres-lunas.2t",
+            h2: "tres-lunas.2h",
+            t3: "tres-lunas.3t",
+            h3: "tres-lunas.3h"       
+        };
+
+        const lastUpdate = {
+            t1: null,
+            h1: null,
+            t2: null,
+            h2: null,
+            t3: null,
+            h3: null
+        };
+          
+        function init() {
+            const saved = localStorage.getItem('mqtt_dht11_config');
+            if (saved) { 
+                config = JSON.parse(saved); 
+                modalEl.classList.add('hidden'); 
+                buildCharts(); 
+                loadHistoricalData(); 
+            } else { 
+                modalEl.classList.remove('hidden'); 
+                statusEl.innerText = "Setup Required"; 
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-slate-700 text-slate-300"; 
+            }
+        }
+
+        saveBtn.addEventListener('click', () => {
+            config = {
+                username: document.getElementById('input-username').value.trim(),
+                apiKey: document.getElementById('input-key').value.trim()               
+            };
+            if(!config.username || !config.apiKey) { alert("Missing settings."); return; }
+            localStorage.setItem('mqtt_dht11_config', JSON.stringify(config));
+            modalEl.classList.add('hidden'); buildCharts(); loadHistoricalData();
+        });
+        
+        disconnectBtn.addEventListener('click', () => {
+            if (confirm("Clear settings?")) {
+                localStorage.removeItem('mqtt_dht11_config');
+                if (client) client.end();
+                if (tempChart) tempChart.destroy();
+                if (humidityChart) humidityChart.destroy();
+                sensors.forEach(s => document.getElementById(`val-${s}`).innerText = "--");
+                init();
+            }
+        });
+
+        rangeSelect.addEventListener('change', loadHistoricalData);
+        binSelect.addEventListener('change', () => {
+            if (latestAllData) updateChartsFromData(latestAllData);
+        });
+
+          
+        function buildCharts() {
+            const opt = () => ({
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: { type: 'time', time: { unit: 'hour' }, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
+                },
+                plugins: { legend: { labels: { color: '#f8fafc', font: { size: 10 } } } },
+                elements: { point: { radius: 1, hoverRadius: 4 }, line: { borderWidth: 2 } }
+            });
+            
+            tempChart = new Chart(document.getElementById('tempChart'), {
+                type: 'line',
+                data: { datasets: [
+                    { label: '1', data: [], borderColor: colors.t1, backgroundColor: colors.t1+'22' },
+                    { label: '2', data: [], borderColor: colors.t2, backgroundColor: colors.t2+'22' },
+                    { label: '3', data: [], borderColor: colors.t3, backgroundColor: colors.t3+'22' }
+                ]}, options: opt()
+            });
+            
+            humidityChart = new Chart(document.getElementById('humidityChart'), {
+                type: 'line',
+                data: { datasets: [
+                    { label: '1', data: [], borderColor: colors.h1, backgroundColor: colors.h1+'22' },
+                    { label: '2', data: [], borderColor: colors.h2, backgroundColor: colors.h2+'22' },
+                    { label: '3', data: [], borderColor: colors.h3, backgroundColor: colors.h3+'22' }
+                ]}, options: opt()
+            });
+        }
+
+        function updateChartsFromData(allData) {
+            applyTimeScale();
+
+            const binMinutes = parseInt(binSelect.value, 10);
+            
+            tempChart.data.datasets[0].data = parseChartData(allData[0], binMinutes);
+            tempChart.data.datasets[1].data = parseChartData(allData[2], binMinutes);
+            tempChart.data.datasets[2].data = parseChartData(allData[4], binMinutes);
+        
+            humidityChart.data.datasets[0].data = parseChartData(allData[1], binMinutes);
+            humidityChart.data.datasets[1].data = parseChartData(allData[3], binMinutes);
+            humidityChart.data.datasets[2].data = parseChartData(allData[5], binMinutes);
+        
+            tempChart.update();
+            humidityChart.update();
+        }
+            
+        async function loadHistoricalData() {
+            statusEl.innerText = "Loading history...";
+            try {
+                // Parallel fetch requests for all 6 target feeds
+                const hours = parseInt(rangeSelect.value, 10);
+                const targetCount = Math.ceil((hours * 60) / 5) + 100;
+                
+                const requests = sensors.map(s => {
+                    const keyString = FEEDS[s];
+                    let apiPath = '';
+                
+                    if (keyString.includes('.')) {
+                        const [groupKey, feedKey] = keyString.split('.');
+                        apiPath = `groups/${groupKey}/feeds/${feedKey}`;
+                    } else {
+                        apiPath = `feeds/${keyString}`;
+                    }
+                
+                    return fetchFeedData(apiPath, hours, targetCount);
+                });
+                
+                const allData = await Promise.all(requests);
+                // DEBUG
+                //console.log(allData[0][0]);
+
+                
+                latestAllData = allData;
+                updateChartsFromData(allData);
+                // Populate current readings display with precise decimal data from element 0 (newest point)
+                sensors.forEach((s, idx) => {
+                    const feedPoints = allData[idx];
+                
+                    if (Array.isArray(feedPoints) && feedPoints.length > 0) {
+                        const latestPoint = feedPoints.find(p => {
+                            const v = parseFloat(p.value);
+                            return !isNaN(v) && v !== 0;
+                        });
+                
+                        if (latestPoint) {
+                            const lastVal = parseFloat(latestPoint.value);
+                            const lastTime = new Date(latestPoint.created_at);
+                
+                            document.getElementById(`val-${s}`).innerText =
+                                lastVal.toFixed(1);
+                
+                            lastUpdate[s] = lastTime;
+                
+                            const sensorNum = s.slice(1);
+                            document.getElementById(`time-${sensorNum}`).innerText =
+                                lastTime.toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                            });
+                        }
+                    }
+                });
+                
+                connectLiveMQTT();
+            } catch (err) {
+                console.error("Historical Error Log:", err); 
+                statusEl.innerText = "API Error";
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-600 text-white";
+            }
+        }
+
+          
+        async function fetchFeedData(apiPath, hours = 168, targetCount = 2500) {
+            let allPoints = [];
+            let endTime = null;
+        
+            while (allPoints.length < targetCount) {
+                let url =
+                    `https://io.adafruit.com/api/v2/${config.username}/${apiPath}/data` +
+                    `?limit=1000`;
+        
+                if (endTime) {
+                    url += `&end_time=${encodeURIComponent(endTime)}`;
+                } else {
+                    // Only constrain the first page to the last week.
+                    url += `&hours=${hours}`;
+                }
+        
+                const res = await fetch(url, {
+                    headers: { "X-AIO-Key": config.apiKey }
+                });
+        
+                if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        
+                const page = await res.json();
+                if (!Array.isArray(page) || page.length === 0) break;
+        
+                allPoints = allPoints.concat(page);
+        
+                console.log(
+                    apiPath,
+                    "page:", page.length,
+                    "newest:", page[0]?.created_at,
+                    "oldest:", page[page.length - 1]?.created_at,
+                    "total:", allPoints.length
+                );
+        
+                if (page.length < 1000) break;
+        
+                const oldestPoint = page[page.length - 1];
+        
+                // Step slightly before the oldest point so we don't fetch it again.
+                const oldestMs = new Date(oldestPoint.created_at).getTime();
+                endTime = new Date(oldestMs - 1000).toISOString();
+            }
+        
+            return allPoints;
+        }
+
+          
+
+        function parseChartData(singleFeedArray, binMinutes = 60) {
+            if (!Array.isArray(singleFeedArray)) return [];
+        
+            const rangeHours = parseInt(rangeSelect.value, 10);
+            const cutoffMs = Date.now() - rangeHours * 60 * 60 * 1000;
+        
+            const binMs = binMinutes * 60 * 1000;
+            const bins = new Map();
+        
+            singleFeedArray.forEach(i => {
+                const value = parseFloat(i.value);
+                if (isNaN(value) || value === 0) return;
+        
+                const time = new Date(i.created_at).getTime();
+                if (time < cutoffMs) return;
+        
+                const binStart = Math.floor(time / binMs) * binMs;
+        
+                if (!bins.has(binStart)) {
+                    bins.set(binStart, { sum: 0, count: 0 });
+                }
+        
+                const bin = bins.get(binStart);
+                bin.sum += value;
+                bin.count += 1;
+            });
+        
+            return Array.from(bins.entries())
+                .map(([binStart, bin]) => ({
+                    x: new Date(Number(binStart)),
+                    y: bin.sum / bin.count
+                }))
+                .sort((a, b) => a.x - b.x);
+        }
+
+        function applyTimeScale() {
+            const hours = parseInt(rangeSelect.value, 10);
+            const now = Date.now();
+            const minTime = now - hours * 60 * 60 * 1000;
+        
+            let unit = 'hour';
+            let stepSize = 1;
+        
+            if (hours <= 4) {
+                unit = 'minute';
+                stepSize = 30;
+            } else if (hours <= 24) {
+                unit = 'hour';
+                stepSize = 3;
+            } else if (hours <= 168) {
+                unit = 'day';
+                stepSize = 1;
+            } else if (hours <= 720) {
+                unit = 'week';
+                stepSize = 1;
+            } else {
+                unit = 'month';
+                stepSize = 1;
+            }
+        
+            [tempChart, humidityChart].forEach(chart => {
+                chart.options.scales.x.min = minTime;
+                chart.options.scales.x.max = now;
+                chart.options.scales.x.time.unit = unit;
+                chart.options.scales.x.time.stepSize = stepSize;
+            });
+        }
+        
+        function downloadCurrentChartData() {
+            const table = new Map();
+        
+            function addDataset(chart, columnName, datasetIndex) {
+                chart.data.datasets[datasetIndex].data.forEach(point => {
+                    const key = point.x.getTime();
+        
+                    if (!table.has(key)) {
+                        table.set(key, {
+                            Timestamp: formatTimestamp(point.x),
+                            Temp1: "",
+                            Temp2: "",
+                            Temp3: "",
+                            Humidity1: "",
+                            Humidity2: "",
+                            Humidity3: ""
+                        });
+                    }
+        
+                    table.get(key)[columnName] = point.y;
+                });
+            }
+        
+            addDataset(tempChart, "Temp1", 0);
+            addDataset(tempChart, "Temp2", 1);
+            addDataset(tempChart, "Temp3", 2);
+        
+            addDataset(humidityChart, "Humidity1", 0);
+            addDataset(humidityChart, "Humidity2", 1);
+            addDataset(humidityChart, "Humidity3", 2);
+        
+            const rows = [
+                ["Timestamp", "Temp1", "Temp2", "Temp3", "Humidity1", "Humidity2", "Humidity3"]
+            ];
+        
+            Array.from(table.keys())
+                .sort((a, b) => a - b)
+                .forEach(key => {
+                    const r = table.get(key);
+                    rows.push([
+                        r.Timestamp,
+                        r.Temp1,
+                        r.Temp2,
+                        r.Temp3,
+                        r.Humidity1,
+                        r.Humidity2,
+                        r.Humidity3
+                    ]);
+                });
+        
+            const csv = rows
+                .map(row => row.map(csvEscape).join(","))
+                .join("\n");
+        
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+        
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `tres-lunas-${new Date().toISOString().slice(0, 10)}.csv`;
+            a.click();
+        
+            URL.revokeObjectURL(url);
+        }
+        
+        function addChartRows(rows, measurement, chart) {
+            chart.data.datasets.forEach(dataset => {
+                dataset.data.forEach(point => {
+                    rows.push([
+                        measurement,
+                        dataset.label,
+                        formatTimestamp(point.x),
+                        point.y
+                    ]);
+                });
+            });
+        }
+        
+        function csvEscape(value) {
+            const s = String(value);
+            if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+                return `"${s.replaceAll('"', '""')}"`;
+            }
+            return s;
+        }
+        function formatTimestamp(date) {
+            const pad = n => String(n).padStart(2, '0');
+        
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ` +
+                   `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+        }                 
+
+        function connectLiveMQTT() {
+            statusEl.innerText = "Connecting live...";
+            statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500 text-slate-950";
+
+            const brokerUrl ='wss://io.adafruit.com/mqtt';
+            const options =  { 
+                username: config.username, 
+                password: config.apiKey, 
+                clientId: 'dht_' + Math.random().toString(16).substr(2, 6) 
+            }
+            client = mqtt.connect(brokerUrl,options);
+
+            const topicMap = {};
+            const topics = sensors.map(s => {
+                const t = `${config.username}/feeds/${FEEDS[s]}`;
+                topicMap[t] = s;
+                return t;
+            });
+
+            client.on('connect', () => {
+                statusEl.innerText = "Live Connected";
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500 text-slate-950";
+                client.subscribe(topics);
+            });
+            client.on('close', () => {
+                statusEl.innerText = "Live Offline";
+                statusEl.className = "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500 text-slate-100";
+            });
+           client.on('message', (topic, msg) => {
+                const key = topicMap[topic];
+                const val = parseFloat(msg.toString());
+            
+                if (isNaN(val) || val === 0) return;
+            
+                const now = new Date();
+                const sensorNum = key.slice(1);
+                document.getElementById(`time-${sensorNum}`).innerText =
+                    now.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                lastUpdate[key] = now;
+                
+                document.getElementById(`val-${key}`).innerText = val.toFixed(1);
+
+               if (key.startsWith('t')) {
+                    const idx = key === 't1' ? 0 : key === 't2' ? 1 : 2;
+                    tempChart.data.datasets[idx].data.push({ x: now, y: val }); tempChart.update('none');
+                } else {
+                    const idx = key === 'h1' ? 0 : key === 'h2' ? 1 : 2;
+                    humidityChart.data.datasets[idx].data.push({ x: now, y: val }); humidityChart.update('none');
+                }
+            });
+        }
+        init();
+    </script>
+</body>
+</html>
