@@ -1,7 +1,9 @@
 import network
 from utils import wait_with_wdt, feed_wdt
-from machine import reset
+from machine import reset, Pin
 import socket
+import time
+import sys
 
 BACKOFF_DELAYS = [
     (5, 3),
@@ -35,21 +37,34 @@ def ensure_wifi(ssid, password):
     return reconnect_wifi(ssid, password)
 
 
-def initialize_wifi(ssid, password, timeout=6):
+def initialize_wifi(ssid, password, timeout=30):
+
+    # # Pin 23 is the hardware power-on pin for the Wi-Fi chip
+    # wl_on = Pin(23, Pin.OUT)
+
+    # # Force-drain the Wi-Fi chip's power
+    # wl_on.low()
+    # time.sleep_ms(1000) # Must wait for internal capacitors to fully empty
+
+    # # Restore power and give the chip a moment to stabilize
+    # wl_on.high()
+    # time.sleep_ms(1000) # Must wait for internal capacitors to fully charge
+
+    print(f"Initializing Wi-Fi connection to SSID: {ssid}")
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
-    wait_with_wdt(3)  # Wait for the interface to become active
+    wait_with_wdt(2)  # Wait for the interface to become active
     # Connect to the network
     wlan.connect(ssid, password)
 
     # Wait for Wi-Fi connection
 
     while timeout > 0:
-        wait_with_wdt(5)
+        wait_with_wdt(2)
         wifi_status = wlan.status()
         if wifi_status >= 3:
             break
-        timeout -= 1
+        timeout -= 2
         print(f'Waiting for Wi-Fi connection... {wifi_status_string(wifi_status)}')
         
 
@@ -62,22 +77,24 @@ def initialize_wifi(ssid, password, timeout=6):
         print('Connection successful!')
         print("IFCONFIG:", network_info)
         print("RSSI:", wlan.status('rssi'))
-        test_wifi_connection()
-        return True
+        wait_with_wdt(2)
+        return test_wifi_connection()
 
 
 def test_wifi_connection():
-    addr = socket.getaddrinfo("www.google.com", 80)[0][-1]
-    print(addr)
-    s = socket.socket()
-    s.settimeout(10)
+    try:
+        addr = socket.getaddrinfo("www.google.com", 80)[0][-1]
+        print(f"Tested DNS: {addr}")
+        s = socket.socket()
+        s.settimeout(10)
+        s.connect(addr)
+        print("TCP connect worked")
+        s.close()
+        return True
 
-    print("Testing TCP:", addr)
-    s.connect(addr)
-
-    print("TCP works")
-    s.close()
-    return True
+    except Exception as e:
+        sys.print_exception("TCP test failed:", e)
+        return False
     
 
 def reconnect_wifi(ssid, password):

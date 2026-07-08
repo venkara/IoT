@@ -31,7 +31,6 @@ def get_sensor_readings():
             # Apply calibration offsets for the sensor
             temp_offset = config.SENSOR_TEMP_CAL.get(node.get_sensor_number(), 0.0)
             humidity_offset = config.SENSOR_RH_CAL.get(node.get_sensor_number(), 0.0)
-            print(f"Applying calibration offsets: Temperature offset = {temp_offset}, Humidity offset = {humidity_offset}")
             temperature = temperature + temp_offset
             humidity = humidity + humidity_offset
             return temperature, humidity
