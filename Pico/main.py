@@ -1,5 +1,4 @@
 from machine import reset, reset_cause
-import gc
 import time
 import networking
 import utils
@@ -9,14 +8,9 @@ import mqtt
 import sys
 import clock
 
-print("\n\n\nReset cause:", reset_cause())
+print("Reset cause:", reset_cause())
 print("-----------------------------")
-
-if config.fahrenheit==True:
-    temp_unit = "°F"
-else:
-    temp_unit = "°C"
-
+utils.feed_wdt()
 
 try:
     if not networking.initialize_wifi(config.wifi_ssid, config.wifi_password):
@@ -30,22 +24,19 @@ try:
     mqtt.init_identity()
 
     print("-----------------------------\n\n\n")
-    print(f"Time\t\t\tTemp{temp_unit}\tRH%")
+    print(f"Time\t\t\tTemp°C\tRH%")
 
     while True:
         utils.feed_wdt()
-
+        
         # Read sensor data
-        temperature, humidity = sensor.get_sensor_readings()
-        if config.fahrenheit is True:
-            temperature = temperature * 1.8 + 32  # convert °C to °F
+        timestamp, temperature, humidity = sensor.get_sensor_readings()
 
         networking.ensure_wifi(config.wifi_ssid, config.wifi_password) # How's the wifi doing?
-
-        timestamp = clock.current_utc_iso()
         mqtt.publish_readings(temperature, humidity)      # Publish to MQTT broker
         print(f"{timestamp}\t{temperature:.2f}\t{humidity:.2f}")          
 
+        # Housekeeping tasks
         clock.maybe_sync_time()
         utils.track_memory_status()
 

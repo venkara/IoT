@@ -1,4 +1,3 @@
-import network
 from umqtt.simple import MQTTClient
 import config
 from utils import feed_wdt, wait_with_wdt
@@ -11,7 +10,7 @@ mqtt_root = None
 mqtt_client_id = None
 mqtt_topic_temperature = None
 mqtt_topic_humidity = None
-
+node_suffix: str | None = None
    
 def init_identity():
     global mqtt_root, mqtt_client_id, mqtt_topic_temperature, mqtt_topic_humidity
@@ -19,21 +18,24 @@ def init_identity():
     if mqtt_root is not None:
         return # Already initialized
 
-    sensor_number = node.get_sensor_number()
     node_suffix = node.get_node_suffix()
-
-    mqtt_root = config.mqtt_root + str(sensor_number).encode()
-    print("MQTT root:", mqtt_root.decode())
+    assert node_suffix is not None, "Node suffix should not be None"
+    mqtt_topic_root = (config.mqtt_topic_root + node_suffix).encode()
+                                                            
+    print("MQTT root:", mqtt_topic_root.decode())
 
     mqtt_client_id = ("Sensor_" + node_suffix).encode()
     print("MQTT client ID:", mqtt_client_id.decode())
 
     mqtt_addr = getaddrinfo(config.mqtt_server, 8883)
+    
     print(f"MQTT server: ", config.mqtt_server, mqtt_addr)  # Test DNS resolution
 
-    mqtt_topic_temperature = mqtt_root + b't'
-    mqtt_topic_humidity = mqtt_root + b'h'
+    mqtt_topic_temperature = mqtt_topic_root + b't'
+    mqtt_topic_humidity = mqtt_topic_root + b'h'
 
+    print("MQTT topic for temperature:", mqtt_topic_temperature.decode())
+    print("MQTT topic for humidity:", mqtt_topic_humidity.decode())
     return True
 
 

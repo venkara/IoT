@@ -2,25 +2,40 @@ import time
 from machine import Pin, WDT
 import config
 import gc
+import rp2
 
-led = None
-ledState = False
-wdt = None
-wait_start_time = None
-memory_baseline = None
-memory_last_reported = None
+
+led: Pin | None = None
+led_state = False
+wdt: WDT | None = None
+wait_start_time: int | None = None
+memory_baseline: int | None = None
+memory_last_reported: int | None = None
+wdt_allowed: bool | None = None
 
 def feed_wdt():
-    global wdt
-    if wdt is None and not config.DEBUG_NO_WDT:
+    global wdt, wdt_allowed
+
+    if wdt_allowed is None:
+        boot_sel = rp2.bootsel_button()
+        wdt_allowed = config.ENABLE_WDT and not boot_sel
+
+        if wdt_allowed:
+            print("Watchdog enabled")
+        elif boot_sel:
+            print("Watchdog disabled (BOOTSEL held)")
+        elif not config.ENABLE_WDT:
+            print("Watchdog disabled (config)")
+
+    if wdt is None and wdt_allowed:
         wdt = WDT(timeout=8000)
 
     if wdt is not None:
         wdt.feed()
 
 
-def wait_with_wdt(delay):
-    for _ in range(delay*2):
+def wait_with_wdt(delay_seconds):
+    for _ in range(delay_seconds * 2): # Check every 0.5 seconds
         feed_wdt()
         time.sleep_ms(500)
         toggle_led()  # heartbeats 
@@ -47,13 +62,14 @@ def initialize_led():
 
 
 def toggle_led():
-    global led, ledState
+    global led, led_state
     initialize_led()
-    if ledState:
+    assert led is not None
+    if led_state:
         led.off()
     else:
         led.on()
-    ledState = not ledState
+    led_state = not led_state
 
 
 
@@ -67,7 +83,7 @@ def track_memory_status(step_threshold=100, leak_threshold=2000):
         memory_last_reported = current
         print(f"Free memory baseline: {current}")
         return
-
+    assert memory_last_reported is not None
     change_since_last = current - memory_last_reported
     change_since_start = current - memory_baseline
 

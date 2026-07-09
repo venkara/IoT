@@ -2,9 +2,9 @@ from machine import Pin
 import utils
 import dht
 import config
-import node 
+import clock
 
-ht_sensor = None
+ht_sensor: dht.DHT22 | None = None
 
 def initialize_dht22():
     global ht_sensor
@@ -17,23 +17,18 @@ def initialize_dht22():
 
 def get_sensor_readings():
     initialize_dht22() # Lazy initialization of the sensor
-
+    assert ht_sensor is not None
     for attempt in range(3):
         try:
+            timestamp = clock.current_utc_iso()
             ht_sensor.measure()
             temperature = float(ht_sensor.temperature())
             humidity = float(ht_sensor.humidity())
             if (temperature >50) or (temperature < 5) or (humidity < 5):
-                print("Invalid reading, retrying...")
+                print("Invalid reading, retrying...", attempt + 1)
                 utils.wait_with_wdt(1)
                 continue
-
-            # Apply calibration offsets for the sensor
-            temp_offset = config.SENSOR_TEMP_CAL.get(node.get_sensor_number(), 0.0)
-            humidity_offset = config.SENSOR_RH_CAL.get(node.get_sensor_number(), 0.0)
-            temperature = temperature + temp_offset
-            humidity = humidity + humidity_offset
-            return temperature, humidity
+            return timestamp, temperature, humidity
 
         except Exception as e:
             print("Sensor error:", e)

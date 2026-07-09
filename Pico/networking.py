@@ -2,7 +2,6 @@ import network
 from utils import wait_with_wdt, feed_wdt
 from machine import reset, Pin
 import socket
-import time
 import sys
 
 BACKOFF_DELAYS = [
@@ -39,17 +38,6 @@ def ensure_wifi(ssid, password):
 
 def initialize_wifi(ssid, password, timeout=30):
 
-    # # Pin 23 is the hardware power-on pin for the Wi-Fi chip
-    # wl_on = Pin(23, Pin.OUT)
-
-    # # Force-drain the Wi-Fi chip's power
-    # wl_on.low()
-    # time.sleep_ms(1000) # Must wait for internal capacitors to fully empty
-
-    # # Restore power and give the chip a moment to stabilize
-    # wl_on.high()
-    # time.sleep_ms(1000) # Must wait for internal capacitors to fully charge
-
     print(f"Initializing Wi-Fi connection to SSID: {ssid}")
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
@@ -58,7 +46,6 @@ def initialize_wifi(ssid, password, timeout=30):
     wlan.connect(ssid, password)
 
     # Wait for Wi-Fi connection
-
     while timeout > 0:
         wait_with_wdt(2)
         wifi_status = wlan.status()
@@ -76,7 +63,7 @@ def initialize_wifi(ssid, password, timeout=30):
         network_info = wlan.ifconfig()
         print('Connection successful!')
         print("IFCONFIG:", network_info)
-        print("RSSI:", wlan.status('rssi'))
+        print(f"Received Signal Strength Indicator: {wlan.status('rssi')}dBm")
         wait_with_wdt(2)
         return test_wifi_connection()
 
