@@ -24,7 +24,7 @@ try:
     mqtt.init_identity()
 
     print("-----------------------------\n\n\n")
-    print(f"Time\t\t\tTemp°C\tRH%")
+#    print(f"Time\t\t\tTemp°C\tRH%")
 
     while True:
         utils.feed_wdt()
@@ -34,13 +34,14 @@ try:
 
         networking.ensure_wifi(config.wifi_ssid, config.wifi_password) # How's the wifi doing?
         mqtt.publish_readings(temperature, humidity)      # Publish to MQTT broker
-        print(f"{timestamp}\t{temperature:.2f}\t{humidity:.2f}")          
 
         # Housekeeping tasks
         clock.maybe_sync_time()
         utils.track_memory_status()
 
-        # Wait until next scheduled time
+        print(f"{timestamp}\t{temperature:.2f}°C\t{humidity:.2f}%")          
+
+        # Wait until next scheduled reading
         utils.wait_since_prev_event(config.mqtt_publish_interval)
 
 except Exception as e:

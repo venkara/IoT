@@ -12,23 +12,28 @@ wait_start_time: int | None = None
 memory_baseline: int | None = None
 memory_last_reported: int | None = None
 wdt_allowed: bool | None = None
+boot_sel = False
+BOOT_TIME = time.ticks_ms()
 
 def feed_wdt():
-    global wdt, wdt_allowed
+    global wdt, wdt_allowed, boot_sel
 
     if wdt_allowed is None:
-        boot_sel = rp2.bootsel_button()
+        elapsed = time.ticks_diff(time.ticks_ms(), BOOT_TIME)
+
+        if elapsed <= 10000:
+            boot_sel = boot_sel or rp2.bootsel_button()
+            return
+
         wdt_allowed = config.ENABLE_WDT and not boot_sel
 
         if wdt_allowed:
+            wdt = WDT(timeout=8000)
             print("Watchdog enabled")
         elif boot_sel:
             print("Watchdog disabled (BOOTSEL held)")
-        elif not config.ENABLE_WDT:
+        else:
             print("Watchdog disabled (config)")
-
-    if wdt is None and wdt_allowed:
-        wdt = WDT(timeout=8000)
 
     if wdt is not None:
         wdt.feed()

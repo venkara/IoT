@@ -3,12 +3,11 @@ import config
 import utils
 
 node_suffix = None
-sensor_number = None
 
 
 def initialize_node_identity():
-    global node_suffix, sensor_number
-    if sensor_number is not None: # already initialized
+    global node_suffix
+    if node_suffix is not None: # already initialized
         return
     
     wlan = network.WLAN(network.STA_IF)
@@ -27,19 +26,7 @@ def initialize_node_identity():
     if node_suffix is None:
         raise RuntimeError("Failed to read valid MAC address")
 
-    sensor_number = config.SENSOR_NUMBERS.get(node_suffix)
-
-    if sensor_number is None:
-        raise RuntimeError("Unknown MAC suffix: " + node_suffix)
-
     print("Node ID:", node_suffix)
-    print("Sensor Number:", sensor_number)
-
-
-
-def get_sensor_number():
-    initialize_node_identity() # ensure node identity is initialized
-    return sensor_number
 
 
 

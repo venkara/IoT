@@ -39,11 +39,25 @@ def ensure_wifi(ssid, password):
 def initialize_wifi(ssid, password, timeout=30):
 
     print(f"Initializing Wi-Fi connection to SSID: {ssid}")
+    network.country('US') 
     wlan = network.WLAN(network.STA_IF)
+    # Force the stack to resolve names strictly via IPv4
+    # This bypasses the multi-second IPv6 timeout loop
+    try:
+        network.ipconfig(prefer=network.IPCONFIG_V4)
+        print("Enforced IPv4 priority.")
+    except AttributeError:
+        # Older firmware compatibility fallback
+        pass
+
     wlan.active(True)
+#    wlan.config(pm=0xa11140) 
+
+    
     wait_with_wdt(2)  # Wait for the interface to become active
     # Connect to the network
     wlan.connect(ssid, password)
+
 
     # Wait for Wi-Fi connection
     while timeout > 0:
@@ -62,27 +76,38 @@ def initialize_wifi(ssid, password, timeout=30):
     else:
         network_info = wlan.ifconfig()
         print('Connection successful!')
-        print("IFCONFIG:", network_info)
         print(f"Received Signal Strength Indicator: {wlan.status('rssi')}dBm")
-        wait_with_wdt(2)
+        print("IFCONFIG:", network_info)
+        print("Waiting 6 seconds for network to stabilize before testing TCP connection...")
+        wait_with_wdt(6)
         return test_wifi_connection()
 
 
 def test_wifi_connection():
+    s = None
     try:
-        addr = socket.getaddrinfo("www.google.com", 80)[0][-1]
-        print(f"Tested DNS: {addr}")
-        s = socket.socket()
-        s.settimeout(10)
+        print("Testing DNS Lookup to google.com...  ", end="")
+        addr = socket.getaddrinfo("google.com", 80)[0][-1]
+        print(addr)
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print("Socket created. ", end="")
         s.connect(addr)
-        print("TCP connect worked")
+        print("TCP connect worked. ", end="")
         s.close()
+        print("Socket closed")
         return True
 
     except Exception as e:
         sys.print_exception("TCP test failed:", e)
         return False
     
+    finally:
+        if s is not None:
+            try:
+                s.close()
+            except Exception:
+                pass
+
 
 def reconnect_wifi(ssid, password):
     for delay, attempts in BACKOFF_DELAYS:

@@ -10,7 +10,7 @@ def sync_time(max_attempts=3):
     global time_is_set, last_sync
 
     for attempt in range(max_attempts):
-        try:            
+        try:
             ntptime.settime()   # sets RTC to UTC
             last_sync = time.time()
             time_is_set = True
@@ -49,3 +49,8 @@ def maybe_sync_time():
         return sync_time()
 
     return True
+
+
+
+    import ntptime
+

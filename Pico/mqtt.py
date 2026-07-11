@@ -6,23 +6,24 @@ import node
 import sys
 
 
-mqtt_root = None
+mqtt_topic_prefix = None
 mqtt_client_id = None
 mqtt_topic_temperature = None
 mqtt_topic_humidity = None
 node_suffix: str | None = None
    
 def init_identity():
-    global mqtt_root, mqtt_client_id, mqtt_topic_temperature, mqtt_topic_humidity
+    global mqtt_topic_prefix, mqtt_client_id, mqtt_topic_temperature, mqtt_topic_humidity
 
-    if mqtt_root is not None:
+    if mqtt_topic_prefix is not None:
         return # Already initialized
 
-    node_suffix = node.get_node_suffix()
+    node_suffix = node.get_node_suffix().lower()
+
     assert node_suffix is not None, "Node suffix should not be None"
-    mqtt_topic_root = (config.mqtt_topic_root + node_suffix).encode()
+    mqtt_topic_prefix = config.mqtt_topic_prefix + (node_suffix).encode()
                                                             
-    print("MQTT root:", mqtt_topic_root.decode())
+    print("MQTT topic prefix:", mqtt_topic_prefix.decode())
 
     mqtt_client_id = ("Sensor_" + node_suffix).encode()
     print("MQTT client ID:", mqtt_client_id.decode())
@@ -31,19 +32,22 @@ def init_identity():
     
     print(f"MQTT server: ", config.mqtt_server, mqtt_addr)  # Test DNS resolution
 
-    mqtt_topic_temperature = mqtt_topic_root + b't'
-    mqtt_topic_humidity = mqtt_topic_root + b'h'
+    mqtt_topic_temperature = config.mqtt_topic_prefix + node_suffix + b"-t"
+    mqtt_topic_humidity = config.mqtt_topic_prefix + node_suffix + b"-h"
 
     print("MQTT topic for temperature:", mqtt_topic_temperature.decode())
     print("MQTT topic for humidity:", mqtt_topic_humidity.decode())
     return True
 
 
+#mqtt_topic_root = 'rvenkat/feeds/tres-lunas.'
+
+
 def publish_mqtt(mqtt_client,topic, value):
     mqtt_client.publish(topic, str(value))
     wait_with_wdt(1) # Delay to allow publish to complete
 
-    
+
 def publish_readings(temperature, humidity):
     init_identity() # lazy initialization of MQTT parameters
 
