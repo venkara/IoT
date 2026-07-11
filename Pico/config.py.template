@@ -1,0 +1,20 @@
+# Configuration file for the IoT sensor project
+
+# Hardware configuration
+dht22_pin = YOUR_PIN_NUMBER  # GPIO pin for DHT22 sensor
+
+# WiFi credentials
+wifi_ssid = 'YOUR_SSID_HERE'
+wifi_password = 'WIFI_PASSWD'
+
+# MQTT broker settings
+mqtt_server = b'YOUR_SERVER'
+mqtt_username = b'YOUR_USERNAME'
+mqtt_password = b'YOUR_PASSWORD'
+mqtt_topic_prefix = b'YOUR_FEED_PREFIX'
+
+# Publish interval in seconds (5 minutes)
+mqtt_publish_interval = 60 * 5  # seconds
+
+# Set to False to disable the watchdog timer for debugging
+ENABLE_WDT = False
