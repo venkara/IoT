@@ -1,17 +1,19 @@
-from umqtt.simple import MQTTClient
+from umqtt_simple import MQTTClient
 import config
 from utils import feed_wdt, wait_with_wdt
 from socket import getaddrinfo
 import node
 import sys
+import ujson
 
 
-mqtt_topic_prefix = None
-mqtt_client_id = None
-mqtt_topic_temperature = None
-mqtt_topic_humidity = None
+mqtt_topic_prefix       = None
+mqtt_client_id          = None
+mqtt_topic_temperature  = None
+mqtt_topic_humidity     = None
 node_suffix: str | None = None
-   
+
+
 def init_identity():
     global mqtt_topic_prefix, mqtt_client_id, mqtt_topic_temperature, mqtt_topic_humidity
 
@@ -43,12 +45,17 @@ def init_identity():
 #mqtt_topic_root = 'rvenkat/feeds/tres-lunas.'
 
 
-def publish_mqtt(mqtt_client,topic, value):
-    mqtt_client.publish(topic, str(value))
+def publish_mqtt(mqtt_client, topic, timestamp, reading):
+    message = ujson.dumps({
+        "timestamp": timestamp,
+        "reading": reading
+    }).encode()
+    mqtt_client.publish(topic, message)
+    # print(message)
     wait_with_wdt(1) # Delay to allow publish to complete
 
 
-def publish_readings(temperature, humidity):
+def publish_readings(timestamp, temperature, humidity):
     init_identity() # lazy initialization of MQTT parameters
 
     for attempt in range(3):
@@ -56,20 +63,20 @@ def publish_readings(temperature, humidity):
 
         try:
             mqtt_client = MQTTClient(
-                client_id=mqtt_client_id,
-                server=config.mqtt_server,
-                port=8883,
-                user=config.mqtt_username,
-                password=config.mqtt_password,
-                keepalive=7200,
-                ssl=True,
-                ssl_params={'server_hostname': config.mqtt_server}
+                client_id   = mqtt_client_id,
+                server      = config.mqtt_server,
+                port        = 8883,
+                user        = config.mqtt_username,
+                password    = config.mqtt_password,
+                keepalive   = 7200,
+                ssl         = True,
+                ssl_params  = {'server_hostname': config.mqtt_server}
             )
 
             mqtt_client.connect()
             feed_wdt()
-            publish_mqtt(mqtt_client, mqtt_topic_temperature, temperature)
-            publish_mqtt(mqtt_client, mqtt_topic_humidity, humidity)
+            publish_mqtt(mqtt_client, mqtt_topic_temperature, timestamp, temperature)
+            publish_mqtt(mqtt_client, mqtt_topic_humidity, timestamp, humidity)
             mqtt_client.disconnect()
             return True
 

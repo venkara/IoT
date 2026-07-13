@@ -33,7 +33,7 @@ try:
         timestamp, temperature, humidity = sensor.get_sensor_readings()
 
         networking.ensure_wifi(config.wifi_ssid, config.wifi_password) # How's the wifi doing?
-        mqtt.publish_readings(temperature, humidity)      # Publish to MQTT broker
+        mqtt.publish_readings(timestamp, temperature, humidity)      # Publish to MQTT broker
 
         # Housekeeping tasks
         clock.maybe_sync_time()
