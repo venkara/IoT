@@ -115,7 +115,7 @@ def test_wifi_connection():
 
 def reconnect_wifi(ssid, password):
 
-    errors.log_message(errors.ERROR_WIFI, "Lost WiFi. Attempting to reconnect." ,True)
+    errors.log_message(errors.SUBSYSTEM_WIFI, "Lost WiFi. Attempting to reconnect." ,True)
     for delay, attempts in BACKOFF_DELAYS:
         for _ in range(attempts):
             if initialize_wifi(ssid, password, timeout=30):

@@ -10,14 +10,15 @@ import clock
 import node
 import status
 import errors
+import gc
+import node
 
-FIRMWARE_VERSION = "1.0.0.2"
+FIRMWARE_VERSION = "1.13"
 
-
+print("-----------------------------\n\n\n")
 cause, cause_str = node.get_reset_cause()
-print("Reset cause: ", cause_str)
-print("-----------------------------")
 utils.feed_wdt()
+node.initialize_node_identity()
 
 try:
     if not networking.initialize_wifi(config.wifi_ssid, config.wifi_password):
@@ -29,6 +30,17 @@ try:
 
     # Set up MQTT identity
     mqtt.init_identity()
+    
+    payload = {
+        "Type":         "boot",
+        "Timestamp":    clock.current_utc_iso(),
+        "Firmware":     FIRMWARE_VERSION,
+        "BootCount":    node.get_boot_count(),
+        "ResetCause":   cause_str,
+        "FreeMemory":   gc.mem_free()
+    }
+    print(payload)
+    mqtt.publish_log(payload)
 
     print("-----------------------------\n\n\n")
 
@@ -41,8 +53,8 @@ try:
         # How's the wifi doing?
         networking.ensure_wifi(config.wifi_ssid, config.wifi_password)
         
-        mqtt.publish_dictionary(mqtt.mqtt_topic_temperature, {"reading": temperature,"timestamp": timestamp})
-        mqtt.publish_dictionary(mqtt.mqtt_topic_humidity, {"reading": humidity,"timestamp": timestamp})
+        mqtt.queue_for_publish(mqtt.mqtt_topic_temperature, {"reading": temperature,"timestamp": timestamp})
+        mqtt.queue_for_publish(mqtt.mqtt_topic_humidity, {"reading": humidity,"timestamp": timestamp})
 
         # Housekeeping tasks
         clock.maybe_sync_time()
@@ -60,5 +72,5 @@ except Exception as e:
     print("-------------------------------------------")
     errors.log_exception(errors.SUBSYSTEM_UNKNOWN, e, True)
     time.sleep(1)
-    print('Attempting soft reset')
+    print('Attempting reset')
     reset()

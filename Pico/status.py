@@ -15,7 +15,8 @@ def get_status():
         "timestamp": clock.current_utc_iso(),
         "uptime_s": time.ticks_ms() // 1000,
         "rssi_dbm": networking.get_wifi_rssi(),
-        "boot_count": node.get_boot_count()
+        "boot_count": node.get_boot_count(),
+        "msg_queue": mqtt.get_publish_queue_length()
     }
     exception_counts["ExceptionCounts"] = errors.get_exception_counts()
     status.update(exception_counts)
@@ -25,12 +26,14 @@ def get_status():
 def maybe_publish_status():
     global scheduled_time
     if scheduled_time is None:
-        mqtt.publish_dictionary(mqtt.mqtt_topic_status, get_status())
+        status = get_status()
+        # print("Publishing status: ",status)
+        mqtt.queue_for_publish(mqtt.mqtt_topic_status, status)
         scheduled_time = time.ticks_add(time.ticks_ms(), config.mqtt_status_interval * 1000)
         return True
     else:
         if time.ticks_ms() >= scheduled_time:
-            mqtt.publish_dictionary(mqtt.mqtt_topic_status, get_status())
+            mqtt.queue_for_publish(mqtt.mqtt_topic_status, get_status())
             scheduled_time = time.ticks_add(time.ticks_ms(), config.mqtt_status_interval * 1000)
             return True
         else:

@@ -49,13 +49,11 @@ def get_node_suffix():
 
 def get_boot_count():
     global boot_count
-    #print("dir list: ", os.listdir())
-    #print("boot_count: ", boot_count)
+    
     if boot_count is None:
         try:
             with open(BOOT_COUNT_FILE, "r") as file:
                 data = ujson.load(file)
-                #print("file json:  ",data)
             boot_count = int(data.get("boot_count", 0))
         except Exception as e:
             sys.print_exception(e)
@@ -71,6 +69,7 @@ def get_boot_count():
         with open(BOOT_COUNT_FILE, "w") as file:
             ujson.dump({"boot_count": boot_count}, file)
 
+    #print("boot_count: ", boot_count)
     return boot_count
 
 
