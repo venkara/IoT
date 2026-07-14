@@ -10,8 +10,8 @@ mqtt_topic_prefix       = None
 mqtt_client_id          = None
 mqtt_topic_temperature  = None
 mqtt_topic_humidity     = None
-mqtt_topic_status       = None
-mqtt_topic_log          = None
+mqtt_topic_diagnostics  = None
+
 
 
 message_cache = []
@@ -22,7 +22,7 @@ MAX_CACHED_MESSAGES = 100
 def init_identity():
     global mqtt_topic_prefix, mqtt_client_id
     global mqtt_topic_temperature, mqtt_topic_humidity
-    global mqtt_topic_status, mqtt_topic_log
+    global mqtt_topic_diagnostics
 
     if mqtt_topic_prefix is not None:  # Initialization already done
         return
@@ -35,15 +35,10 @@ def init_identity():
 
     mqtt_topic_temperature = mqtt_topic_prefix + b"-t"
     mqtt_topic_humidity = mqtt_topic_prefix + b"-h"
-    mqtt_topic_status = mqtt_topic_prefix + b"-status"
-    mqtt_topic_log = mqtt_topic_prefix + b"-log"
+    mqtt_topic_diagnostics = mqtt_topic_prefix + b"-diagnostics"
 
-    # print("MQTT topics:")
-    # print(mqtt_topic_temperature.decode())
-    # print(mqtt_topic_humidity.decode())
-    # print(mqtt_topic_status.decode())
-    # print(mqtt_topic_log.decode())
     return True
+
 
 
 def publish_json(mqtt_client, topic, payload):
@@ -130,9 +125,9 @@ def publish_queue():
     return False
     
 
-def publish_log(payload):
+def publish_diagnostics(payload):
     init_identity()  # Make sure we've initialized our topics
-    return queue_for_publish(mqtt_topic_log, payload)
+    return queue_for_publish(mqtt_topic_diagnostics, payload)
  
 
 

@@ -58,7 +58,7 @@ def log_exception(subsystem_code, e, publish=True):
     exception_counts[subsystem_code] += 1
     last_exception = e
     if publish:
-        mqtt.publish_log(payload)
+        mqtt.publish_diagnostics(payload)
     return
     
 
@@ -70,7 +70,7 @@ def log_message(subsystem_code, message, publish=True):
         "Message":          message
     }
     if publish:
-        mqtt.publish_log(payload)
+        mqtt.publish_diagnostics(payload)
     return
 
 def get_exception_counts():

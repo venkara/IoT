@@ -1,4 +1,4 @@
-from machine import reset, reset_cause
+from machine import reset
 import time
 import networking
 import utils
@@ -13,7 +13,7 @@ import errors
 import gc
 import node
 
-FIRMWARE_VERSION = "1.13"
+FIRMWARE_VERSION = "1.14"
 
 print("-----------------------------\n\n\n")
 cause, cause_str = node.get_reset_cause()
@@ -40,7 +40,7 @@ try:
         "FreeMemory":   gc.mem_free()
     }
     print(payload)
-    mqtt.publish_log(payload)
+    mqtt.publish_diagnostics(payload)
 
     print("-----------------------------\n\n\n")
 
