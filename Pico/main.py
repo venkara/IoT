@@ -7,8 +7,15 @@ import sensor
 import mqtt
 import sys
 import clock
+import node
+import status
+import errors
 
-print("Reset cause:", reset_cause())
+FIRMWARE_VERSION = "1.0.0.2"
+
+
+cause, cause_str = node.get_reset_cause()
+print("Reset cause: ", cause_str)
 print("-----------------------------")
 utils.feed_wdt()
 
@@ -24,7 +31,6 @@ try:
     mqtt.init_identity()
 
     print("-----------------------------\n\n\n")
-#    print(f"Time\t\t\tTemp°C\tRH%")
 
     while True:
         utils.feed_wdt()
@@ -32,12 +38,16 @@ try:
         # Read sensor data
         timestamp, temperature, humidity = sensor.get_sensor_readings()
 
-        networking.ensure_wifi(config.wifi_ssid, config.wifi_password) # How's the wifi doing?
-        mqtt.publish_readings(timestamp, temperature, humidity)      # Publish to MQTT broker
+        # How's the wifi doing?
+        networking.ensure_wifi(config.wifi_ssid, config.wifi_password)
+        
+        mqtt.publish_dictionary(mqtt.mqtt_topic_temperature, {"reading": temperature,"timestamp": timestamp})
+        mqtt.publish_dictionary(mqtt.mqtt_topic_humidity, {"reading": humidity,"timestamp": timestamp})
 
         # Housekeeping tasks
         clock.maybe_sync_time()
         utils.track_memory_status()
+        status.maybe_publish_status()
 
         print(f"{timestamp}\t{temperature:.2f}°C\t{humidity:.2f}%")          
 
@@ -48,6 +58,7 @@ except Exception as e:
     print("---------------- Exception ----------------")
     sys.print_exception(e)
     print("-------------------------------------------")
+    errors.log_exception(errors.SUBSYSTEM_UNKNOWN, e, True)
     time.sleep(1)
     print('Attempting soft reset')
     reset()

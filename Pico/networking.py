@@ -1,8 +1,11 @@
 import network
 from utils import wait_with_wdt, feed_wdt
-from machine import reset, Pin
+from machine import reset
 import socket
 import sys
+import errors
+
+
 
 BACKOFF_DELAYS = [
     (5, 3),
@@ -51,7 +54,7 @@ def initialize_wifi(ssid, password, timeout=30):
         pass
 
     wlan.active(True)
-#    wlan.config(pm=0xa11140) 
+    wlan.config(pm=0xa11140) 
 
     
     wait_with_wdt(2)  # Wait for the interface to become active
@@ -99,6 +102,7 @@ def test_wifi_connection():
 
     except Exception as e:
         sys.print_exception("TCP test failed:", e)
+        errors.log_exception(errors.SUBSYSTEM_WIFI, e, True)
         return False
     
     finally:
@@ -110,6 +114,8 @@ def test_wifi_connection():
 
 
 def reconnect_wifi(ssid, password):
+
+    errors.log_message(errors.ERROR_WIFI, "Lost WiFi. Attempting to reconnect." ,True)
     for delay, attempts in BACKOFF_DELAYS:
         for _ in range(attempts):
             if initialize_wifi(ssid, password, timeout=30):
@@ -120,3 +126,9 @@ def reconnect_wifi(ssid, password):
 
     print("Too many failures, rebooting")
     reset()
+
+
+
+def get_wifi_rssi():
+    wlan = network.WLAN(network.STA_IF)
+    return wlan.status('rssi')

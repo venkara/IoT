@@ -1,13 +1,14 @@
 import time
 import ntptime
 import utils
-
+import errors
 time_is_set = False
 last_sync = None
 
 
 def sync_time(max_attempts=3):
     global time_is_set, last_sync
+    last_exception = None
 
     for attempt in range(max_attempts):
         try:
@@ -18,8 +19,12 @@ def sync_time(max_attempts=3):
             return True
 
         except Exception as e:
-            print("NTP sync failed:", e)
+            print(f"NTP sync {attempt+1} failed: {e}")
+            last_exception = e
             utils.wait_with_wdt(5)
+
+    if last_exception is not None:
+        errors.log_exception(errors.SUBSYSTEM_NTP,last_exception,True)
 
     return False
 

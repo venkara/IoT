@@ -5,6 +5,8 @@ import gc
 import rp2
 
 
+
+
 led: Pin | None = None
 led_state = False
 wdt: WDT | None = None
@@ -14,6 +16,10 @@ memory_last_reported: int | None = None
 wdt_allowed: bool | None = None
 boot_sel = False
 BOOT_TIME = time.ticks_ms()
+
+
+
+
 
 def feed_wdt():
     global wdt, wdt_allowed, boot_sel
@@ -75,7 +81,6 @@ def toggle_led():
     else:
         led.on()
     led_state = not led_state
-
 
 
 def track_memory_status(step_threshold=100, leak_threshold=2000):

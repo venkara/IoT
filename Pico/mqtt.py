@@ -5,17 +5,19 @@ from socket import getaddrinfo
 import node
 import sys
 import ujson
-
+import clock
+import errors
 
 mqtt_topic_prefix       = None
 mqtt_client_id          = None
 mqtt_topic_temperature  = None
 mqtt_topic_humidity     = None
 node_suffix: str | None = None
-
+mqtt_topic_status       = None
+mqtt_topic_log          = None
 
 def init_identity():
-    global mqtt_topic_prefix, mqtt_client_id, mqtt_topic_temperature, mqtt_topic_humidity
+    global mqtt_topic_prefix, mqtt_client_id, mqtt_topic_temperature, mqtt_topic_humidity, mqtt_topic_status, mqtt_topic_log
 
     if mqtt_topic_prefix is not None:
         return # Already initialized
@@ -31,68 +33,96 @@ def init_identity():
     print("MQTT client ID:", mqtt_client_id.decode())
 
     mqtt_addr = getaddrinfo(config.mqtt_server, 8883)
-    
     print(f"MQTT server: ", config.mqtt_server, mqtt_addr)  # Test DNS resolution
 
-    mqtt_topic_temperature = config.mqtt_topic_prefix + node_suffix + b"-t"
-    mqtt_topic_humidity = config.mqtt_topic_prefix + node_suffix + b"-h"
+    mqtt_topic_temperature  = config.mqtt_topic_prefix + node_suffix + b"-t"
+    mqtt_topic_humidity     = config.mqtt_topic_prefix + node_suffix + b"-h"
+    mqtt_topic_status       = config.mqtt_topic_prefix + node_suffix + b"-status"
+    mqtt_topic_log          = config.mqtt_topic_prefix + node_suffix + b"-log"
 
-    print("MQTT topic for temperature:", mqtt_topic_temperature.decode())
-    print("MQTT topic for humidity:", mqtt_topic_humidity.decode())
+    print("MQTT topics:")
+    print(mqtt_topic_temperature.decode())
+    print(mqtt_topic_humidity.decode())
+    print(mqtt_topic_status.decode())
+    print(mqtt_topic_log.decode())
     return True
 
 
-#mqtt_topic_root = 'rvenkat/feeds/tres-lunas.'
+def publish_json(mqtt_client, topic, payload):
+    try:
+        message = ujson.dumps(payload).encode()
+    except Exception as e:
+        print("JSON encoding failed:")
+        sys.print_exception(e)
+        return False
 
-
-def publish_mqtt(mqtt_client, topic, timestamp, reading):
-    message = ujson.dumps({
-        "timestamp": timestamp,
-        "reading": reading
-    }).encode()
     mqtt_client.publish(topic, message)
-    # print(message)
-    wait_with_wdt(1) # Delay to allow publish to complete
+    wait_with_wdt(1)
+
+    return True
 
 
-def publish_readings(timestamp, temperature, humidity):
-    init_identity() # lazy initialization of MQTT parameters
+def publish_dictionary(topic, payload):
+    init_identity()
+    last_exception = None
 
     for attempt in range(3):
         mqtt_client = None
 
         try:
             mqtt_client = MQTTClient(
-                client_id   = mqtt_client_id,
-                server      = config.mqtt_server,
-                port        = 8883,
-                user        = config.mqtt_username,
-                password    = config.mqtt_password,
-                keepalive   = 7200,
-                ssl         = True,
-                ssl_params  = {'server_hostname': config.mqtt_server}
+                client_id=mqtt_client_id,
+                server=config.mqtt_server,
+                port=8883,
+                user=config.mqtt_username,
+                password=config.mqtt_password,
+                keepalive=7200,
+                ssl=True,
+                ssl_params={"server_hostname": config.mqtt_server}
             )
 
             mqtt_client.connect()
             feed_wdt()
-            publish_mqtt(mqtt_client, mqtt_topic_temperature, timestamp, temperature)
-            publish_mqtt(mqtt_client, mqtt_topic_humidity, timestamp, humidity)
+
+            publish_json(
+                mqtt_client,
+                topic,
+                payload
+            )
+
             mqtt_client.disconnect()
             return True
 
         except Exception as e:
-            print("---------------- Exception ----------------")
+            print(
+                "MQTT publish attempt "
+                f"{attempt + 1}/3 failed:"
+            )
             sys.print_exception(e)
-            print("-------------------------------------------")
+            last_exception = e
+
             try:
                 if mqtt_client is not None:
                     mqtt_client.disconnect()
             except Exception:
                 try:
-                    mqtt_client.sock.close()
+                    if mqtt_client is not None and mqtt_client.sock is not None:
+                        mqtt_client.sock.close()
                 except Exception:
                     pass
-            feed_wdt()
-    
-    print("Too many MQTT failures, skipping publish for this cycle.")
+            wait_with_wdt(5)
+
+    print("Too many MQTT failures; skipping publish.")
+
+    if last_exception is not None:
+        print("Final MQTT exception:")
+        sys.print_exception(last_exception)
+        log_exception(SUBSYSTEM_MQTT, last_exception, False)  # Don't try to publish errors from MQTT to avoid recursion
     return False
+
+    
+
+def publish_log(payload):
+    init_identity()  # Make sure we've initialized our topics.
+    return publish_dictionary(mqtt_topic_log, payload)
+ 

@@ -3,7 +3,7 @@ import utils
 import dht
 import config
 import clock
-
+import errors
 ht_sensor: dht.DHT22 | None = None
 
 def initialize_dht22():
@@ -17,6 +17,7 @@ def initialize_dht22():
 
 def get_sensor_readings():
     initialize_dht22() # Lazy initialization of the sensor
+    last_exception = None
     assert ht_sensor is not None
     for attempt in range(3):
         try:
@@ -32,6 +33,8 @@ def get_sensor_readings():
 
         except Exception as e:
             print("Sensor error:", e)
+            last_exception = e
             utils.wait_with_wdt(1)
 
-    raise RuntimeError("Failed to obtain valid sensor reading")
+    if last_exception is not None:
+        errors.log_exception(errors.SUBSYSTEM_SENSOR,last_exception,True)
