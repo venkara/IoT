@@ -1063,8 +1063,10 @@ async function showLogTable() {
     logTableContainer.innerHTML = '<div class="text-sm text-slate-400">Loading...</div>';
 
     try {
-        String(row.Type ?? row.type).toLowerCase();
+        const allRows = await loadDiagnosticsRows();
+
         const logRows = allRows.filter((row) => String(row.Type).toLowerCase() !== 'status');
+
         renderDiagnosticsTable(logTableContainer, logRows);
     } catch (error) {
         console.error('Log table error:', error);
@@ -1073,6 +1075,7 @@ async function showLogTable() {
             '<div class="text-sm text-rose-400">Unable to load log data.</div>';
     }
 }
+
 /******************************************************************************
  * CSV EXPORT
  ******************************************************************************/
