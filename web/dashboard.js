@@ -1,6 +1,6 @@
 /******************************************************************************
  * dashboard.js
- * Ver 1.17
+ * Ver 1.171
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *
@@ -905,11 +905,12 @@ function makeDiagnosticsRows(feedData, node) {
                     Object.entries(value).forEach(([subsystem, count]) => {
                         row[`Ex_${subsystem}`] = count;
                     });
+                } else {
                     if (key === 'Uptime_s') {
                         row.Uptime = formatUptime(value);
+                    } else {
+                        row[key] = value;
                     }
-                } else {
-                    row[key] = value;
                 }
             }
         });
