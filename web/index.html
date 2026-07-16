@@ -176,6 +176,25 @@
                 class="w-full bg-slate-700 hover:bg-slate-600 text-slate-100 rounded-lg p-2 text-sm font-semibold">
                 Download CSV
             </button>
+            <section class="bg-slate-800 p-4 rounded-2xl border border-slate-700/50">
+                <button
+                    id="show-status-table-btn"
+                    class="w-full text-left text-sm font-semibold text-slate-200">
+                    Status History
+                </button>
+
+                <div id="status-table-container" class="hidden mt-4 overflow-x-auto"></div>
+            </section>
+
+            <section class="bg-slate-800 p-4 rounded-2xl border border-slate-700/50">
+                <button
+                    id="show-log-table-btn"
+                    class="w-full text-left text-sm font-semibold text-slate-200">
+                    Event Log
+                </button>
+
+                <div id="log-table-container" class="hidden mt-4 overflow-x-auto"></div>
+            </section>
         </main>
 
         <script>
@@ -240,7 +259,10 @@
             const statusEl = document.getElementById('status');
             const saveBtn = document.getElementById('save-config-btn');
             const disconnectBtn = document.getElementById('disconnect-btn');
-
+            const showStatusTableBtn = document.getElementById('show-status-table-btn');
+            const showLogTableBtn = document.getElementById('show-log-table-btn');
+            const statusTableContainer = document.getElementById('status-table-container');
+            const logTableContainer = document.getElementById('log-table-container');
             // NODE AND FEED HELPERS
 
             function getNode(sensorKey) {
@@ -282,6 +304,16 @@
                 if (!feedKey) {
                     return null;
                 }
+
+                return `groups/tres-lunas/feeds/${feedKey}`;
+            }
+
+            function getDiagnosticsApiPath(node) {
+                if (!node || !node.suffix) {
+                    return null;
+                }
+
+                const feedKey = `${node.suffix.toLowerCase()}-diagnostics`;
 
                 return `groups/tres-lunas/feeds/${feedKey}`;
             }
@@ -341,6 +373,234 @@
                     return null;
                 }
             }
+
+            function getPayloadTimestamp(payload, item) {
+                const timestampValue = payload.Timestamp ?? payload.timestamp ?? item.created_at;
+
+                const timestamp = new Date(timestampValue);
+
+                if (Number.isNaN(timestamp.getTime())) {
+                    return null;
+                }
+
+                return timestamp;
+            }
+            /*******************************
+             * Display Diagnostics data
+             ********************************/
+            function parseDiagnosticsPayload(item) {
+                try {
+                    const payload =
+                        typeof item.value === 'string' ? JSON.parse(item.value) : item.value;
+
+                    if (payload === null || typeof payload !== 'object' || Array.isArray(payload)) {
+                        return null;
+                    }
+
+                    return payload;
+                } catch (error) {
+                    console.warn('Unable to parse diagnostics payload:', item.value, error);
+                    return null;
+                }
+            }
+
+            function makeDiagnosticsRows(feedData, node) {
+                const rows = [];
+
+                feedData.forEach((item) => {
+                    const payload = parseDiagnosticsPayload(item);
+
+                    if (!payload) {
+                        return;
+                    }
+
+                    const timestamp = getPayloadTimestamp(payload, item);
+
+                    if (!timestamp) {
+                        return;
+                    }
+
+                    const row = {
+                        Timestamp: timestamp,
+                        Node: node.suffix,
+                    };
+
+                    Object.entries(payload).forEach(([key, value]) => {
+                        if (key !== 'Timestamp' && key !== 'timestamp') {
+                            row[key] = value;
+                        }
+                    });
+
+                    rows.push(row);
+                });
+
+                return rows;
+            }
+
+            async function loadDiagnosticsRows() {
+                const hours = Number.parseInt(rangeSelect.value, 10);
+
+                const requests = NODES.map(async (node) => {
+                    const apiPath = getDiagnosticsApiPath(node);
+
+                    if (!apiPath) {
+                        return [];
+                    }
+
+                    const data = await fetchFeedData(apiPath, hours, 1000);
+
+                    return makeDiagnosticsRows(data, node);
+                });
+
+                const nodeRows = await Promise.all(requests);
+
+                return nodeRows.flat();
+            }
+
+            function renderDiagnosticsTable(container, rows) {
+                if (!rows.length) {
+                    container.innerHTML =
+                        '<div class="text-sm text-slate-400">No data available.</div>';
+
+                    return;
+                }
+
+                const fieldNames = new Set();
+
+                rows.forEach((row) => {
+                    Object.keys(row).forEach((key) => {
+                        if (key !== 'Timestamp' && key !== 'Node') {
+                            fieldNames.add(key);
+                        }
+                    });
+                });
+
+                const columns = ['Timestamp', 'Node', ...Array.from(fieldNames).sort()];
+
+                rows.sort((a, b) => b.Timestamp.getTime() - a.Timestamp.getTime());
+
+                const headerHtml = columns
+                    .map(
+                        (column) => `
+                <th
+                    class="px-3 py-2 border-b border-slate-600
+                           text-left whitespace-nowrap">
+                    ${escapeHtml(column)}
+                </th>
+            `
+                    )
+                    .join('');
+
+                const bodyHtml = rows
+                    .map(
+                        (row) => `
+                <tr class="border-b border-slate-700">
+                    ${columns
+                        .map(
+                            (column) => `
+                                <td class="px-3 py-2 whitespace-nowrap">
+                                    ${formatDiagnosticsValue(column, row[column])}
+                                </td>
+                            `
+                        )
+                        .join('')}
+                </tr>
+            `
+                    )
+                    .join('');
+
+                container.innerHTML = `
+        <table class="min-w-full text-xs">
+            <thead class="text-slate-300">
+                <tr>${headerHtml}</tr>
+            </thead>
+            <tbody class="text-slate-200">
+                ${bodyHtml}
+            </tbody>
+        </table>
+    `;
+            }
+
+            function formatDiagnosticsValue(column, value) {
+                if (value === undefined || value === null) {
+                    return '';
+                }
+
+                if (column === 'Timestamp' && value instanceof Date) {
+                    return escapeHtml(value.toLocaleString());
+                }
+
+                if (typeof value === 'object') {
+                    return escapeHtml(JSON.stringify(value));
+                }
+
+                return escapeHtml(String(value));
+            }
+
+            function escapeHtml(value) {
+                return String(value)
+                    .replaceAll('&', '&amp;')
+                    .replaceAll('<', '&lt;')
+                    .replaceAll('>', '&gt;')
+                    .replaceAll('"', '&quot;')
+                    .replaceAll("'", '&#039;');
+            }
+
+            async function showStatusTable() {
+                statusTableContainer.innerHTML =
+                    '<div class="text-sm text-slate-400">Loading...</div>';
+
+                try {
+                    const allRows = await loadDiagnosticsRows();
+
+                    const statusRows = allRows.filter(
+                        (row) => String(row.Type).toLowerCase() === 'status'
+                    );
+
+                    renderDiagnosticsTable(statusTableContainer, statusRows);
+                } catch (error) {
+                    console.error('Status table error:', error);
+
+                    statusTableContainer.innerHTML =
+                        '<div class="text-sm text-rose-400">Unable to load status data.</div>';
+                }
+            }
+
+            async function showLogTable() {
+                logTableContainer.innerHTML =
+                    '<div class="text-sm text-slate-400">Loading...</div>';
+
+                try {
+                    const allRows = await loadDiagnosticsRows();
+
+                    const logRows = allRows.filter(
+                        (row) => String(row.Type).toLowerCase() !== 'status'
+                    );
+
+                    renderDiagnosticsTable(logTableContainer, logRows);
+                } catch (error) {
+                    console.error('Log table error:', error);
+
+                    logTableContainer.innerHTML =
+                        '<div class="text-sm text-rose-400">Unable to load log data.</div>';
+                }
+            }
+
+            showStatusTableBtn.addEventListener('click', async () => {
+                statusTableContainer.classList.toggle('hidden');
+
+                if (!statusTableContainer.classList.contains('hidden')) {
+                    await showStatusTable();
+                }
+            });
+
+            showLogTableBtn.addEventListener('click', async () => {
+                logTableContainer.classList.toggle('hidden');
+
+                if (!logTableContainer.classList.contains('hidden')) {
+                    await showLogTable();
+                }
+            });
 
             /*
              * ------------------------------------------------------------------
