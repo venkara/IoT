@@ -995,7 +995,7 @@ function renderDiagnosticsTable(container, rows) {
         .join('');
 
     container.innerHTML = `
-        <table class="min-w-full text-xs">
+        <table class="min-w-full text-[10px] sm:text-xs lg:text-sm">
             <thead class="text-slate-300">
                 <tr>${headerHtml}</tr>
             </thead>
