@@ -13,7 +13,7 @@ import errors
 import gc
 import node
 
-FIRMWARE_VERSION = "1.16"
+FIRMWARE_VERSION = "1.17"
 
 print("-----------------------------\n\n\n")
 cause, cause_str = node.get_reset_cause()
@@ -48,7 +48,9 @@ try:
         utils.feed_wdt()
 
         # Read sensor data
-        timestamp, temperature, humidity = sensor.get_sensor_readings()
+        readings = sensor.get_sensor_readings()
+        if readings is not None:
+            timestamp, temperature, humidity = readings
 
         # How's the wifi doing?
         networking.ensure_wifi(config.wifi_ssid, config.wifi_password)

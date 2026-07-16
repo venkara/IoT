@@ -40,3 +40,4 @@ def get_sensor_readings():
 
     if last_exception is not None:
         errors.log_exception(errors.SUBSYSTEM_SENSOR, last_exception, True)
+        return None
