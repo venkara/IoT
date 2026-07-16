@@ -287,7 +287,7 @@ function canonicalFieldName(name) {
         rssi: 'RSSI',
         rssi_dbm: 'RSSI',
         uptime_s: 'Uptime_s',
-        freelmemory: 'FreeMemory',
+        freememory: 'FreeMemory',
     };
 
     return aliases[lower] ?? prettyColumnName(name);
@@ -991,7 +991,7 @@ function renderDiagnosticsTable(container, rows) {
                 <th
                     class="px-3 py-2 border-b border-slate-600
                            text-left whitespace-nowrap">
-                    ${escapeHtml($prettyColumnName(column))}
+                    ${escapeHtml(prettyColumnName(column))}
                 </th>
             `
         )
@@ -1048,7 +1048,6 @@ async function showStatusTable() {
 
     try {
         const allRows = await loadDiagnosticsRows();
-        String(row.Type ?? row.type).toLowerCase();
         const statusRows = allRows.filter((row) => String(row.type).toLowerCase() === 'status');
 
         renderDiagnosticsTable(statusTableContainer, statusRows);
@@ -1064,10 +1063,8 @@ async function showLogTable() {
     logTableContainer.innerHTML = '<div class="text-sm text-slate-400">Loading...</div>';
 
     try {
-        const allRows = await loadDiagnosticsRows();
         String(row.Type ?? row.type).toLowerCase();
         const logRows = allRows.filter((row) => String(row.Type).toLowerCase() !== 'status');
-
         renderDiagnosticsTable(logTableContainer, logRows);
     } catch (error) {
         console.error('Log table error:', error);
