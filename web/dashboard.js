@@ -1,6 +1,6 @@
 /******************************************************************************
  * dashboard.js
- * Ver 1.001
+ * Ver 1.002
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *
@@ -935,7 +935,7 @@ function makeDiagnosticsRows(feedData, node) {
 
         Object.entries(payload).forEach(([key, value]) => {
             if (key !== 'Timestamp' && key !== 'timestamp') {
-                if (key === 'ExceptionCounts' && typeof value === 'object' && value !== null) {
+                if (key === 'Exception Counts' && typeof value === 'object' && value !== null) {
                     Object.entries(value).forEach(([subsystem, count]) => {
                         row[`Ex_${subsystem}`] = count;
                     });
