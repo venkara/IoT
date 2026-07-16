@@ -923,6 +923,17 @@ function prettyColumnName(name) {
         .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function renderFilteredStatusTable() {
+    const selectedNode = document.querySelector('input[name="status-node"]:checked').value;
+
+    const filteredRows =
+        selectedNode === 'all'
+            ? latestStatusRows
+            : latestStatusRows.filter((row) => row.Node === selectedNode);
+
+    renderDiagnosticsTable(statusTableContainer, filteredRows);
+}
+
 function makeDiagnosticsRows(feedData, node) {
     const rows = [];
 
