@@ -1,6 +1,6 @@
 /******************************************************************************
  * dashboard.js
- * Ver 1.135
+ * Ver 1.14
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *
@@ -63,6 +63,7 @@ let config = {};
 let tempChart = null;
 let humidityChart = null;
 let latestAllData = null;
+let latestStatusRows = [];
 
 /******************************************************************************
  * CONFIGURATION
@@ -1026,8 +1027,8 @@ async function showStatusTable() {
 
     try {
         const allRows = await loadDiagnosticsRows();
-        const statusRows = allRows.filter((row) => String(row.Type).toLowerCase() === 'status');
-        renderDiagnosticsTable(statusTableContainer, statusRows);
+        latestStatusRows = allRows.filter((row) => String(row.Type).toLowerCase() === 'status');
+        renderFilteredStatusTable();
     } catch (error) {
         console.error('Status table error:', error);
 
@@ -1099,27 +1100,18 @@ function downloadCurrentChartData() {
     }
 
     addDataset(tempChart, 'Temp1', 0);
-
     addDataset(tempChart, 'Temp2', 1);
-
     addDataset(tempChart, 'Temp3', 2);
-
     addDataset(humidityChart, 'Humidity1', 0);
-
     addDataset(humidityChart, 'Humidity2', 1);
-
     addDataset(humidityChart, 'Humidity3', 2);
 
     const rows = [
         [
             'Timestamp',
-
             `Temp1_` + DISPLAY_TEMPERATURE_UNIT,
-
             `Temp2_` + DISPLAY_TEMPERATURE_UNIT,
-
             `Temp3_` + DISPLAY_TEMPERATURE_UNIT,
-
             'Humidity1',
             'Humidity2',
             'Humidity3',
@@ -1190,6 +1182,7 @@ function formatTimestamp(date) {
 
 showStatusTableBtn.addEventListener('click', async () => {
     statusTableContainer.classList.toggle('hidden');
+    document.getElementById('status-node-filter').classList.toggle('hidden');
 
     if (!statusTableContainer.classList.contains('hidden')) {
         await showStatusTable();
