@@ -1014,8 +1014,8 @@ async function showStatusTable() {
 
     try {
         const allRows = await loadDiagnosticsRows();
-
-        const statusRows = allRows.filter((row) => String(row.Type).toLowerCase() === 'status');
+        String(row.Type ?? row.type).toLowerCase();
+        const statusRows = allRows.filter((row) => String(row.type).toLowerCase() === 'status');
 
         renderDiagnosticsTable(statusTableContainer, statusRows);
     } catch (error) {
@@ -1031,7 +1031,7 @@ async function showLogTable() {
 
     try {
         const allRows = await loadDiagnosticsRows();
-
+        String(row.Type ?? row.type).toLowerCase();
         const logRows = allRows.filter((row) => String(row.Type).toLowerCase() !== 'status');
 
         renderDiagnosticsTable(logTableContainer, logRows);
