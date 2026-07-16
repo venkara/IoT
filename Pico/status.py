@@ -13,12 +13,12 @@ scheduled_time: int | None = None
 def get_status():
     exception_counts = {}
     status = {
-        "timestamp": clock.current_utc_iso(),
-        "uptime_s": time.ticks_ms() // 1000,
-        "rssi_dbm": networking.get_wifi_rssi(),
-        "boot_count": node.get_boot_count(),
-        "msg_queue": mqtt.get_publish_queue_length(),
-        "type": "status",
+        "Timestamp": clock.current_utc_iso(),
+        "Uptime_s": time.ticks_ms() // 1000,
+        "RSSI_dBm": networking.get_wifi_rssi(),
+        "Boot_count": node.get_boot_count(),
+        "Msg_queue": mqtt.get_publish_queue_length(),
+        "Type": "status",
     }
     exception_counts["ExceptionCounts"] = errors.get_exception_counts()
     status.update(exception_counts)

@@ -247,9 +247,16 @@ function parseDiagnosticsPayload(item) {
             return null;
         }
 
-        return payload;
+        const normalized = {};
+
+        Object.entries(payload).forEach(([key, value]) => {
+            normalized[canonicalFieldName(key)] = value;
+        });
+
+        return normalized;
     } catch (error) {
         console.warn('Unable to parse diagnostics payload:', item.value, error);
+
         return null;
     }
 }
@@ -264,6 +271,26 @@ function getPayloadTimestamp(payload, item) {
     }
 
     return timestamp;
+}
+
+function canonicalFieldName(name) {
+    const lower = name.toLowerCase();
+
+    const aliases = {
+        type: 'Type',
+        timestamp: 'Timestamp',
+        bootcount: 'BootCount',
+        subsystemcode: 'SubsystemCode',
+        exceptype: 'ExcepType',
+        message: 'Message',
+        location: 'Location',
+        rssi: 'RSSI',
+        rssi_dbm: 'RSSI',
+        uptime_s: 'Uptime_s',
+        freelmemory: 'FreeMemory',
+    };
+
+    return aliases[lower] ?? prettyColumnName(name);
 }
 
 /******************************************************************************
@@ -877,6 +904,13 @@ function escapeHtml(value) {
         .replaceAll("'", '&#039;');
 }
 
+function prettyColumnName(name) {
+    return name
+        .replaceAll('_', ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function makeDiagnosticsRows(feedData, node) {
     const rows = [];
 
@@ -957,7 +991,7 @@ function renderDiagnosticsTable(container, rows) {
                 <th
                     class="px-3 py-2 border-b border-slate-600
                            text-left whitespace-nowrap">
-                    ${escapeHtml(column)}
+                    ${escapeHtml($prettyColumnName(column))}
                 </th>
             `
         )
