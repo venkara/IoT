@@ -1,5 +1,6 @@
 /******************************************************************************
  * dashboard.js
+ * Ver 1.00
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *
@@ -1048,8 +1049,7 @@ async function showStatusTable() {
 
     try {
         const allRows = await loadDiagnosticsRows();
-        const statusRows = allRows.filter((row) => String(row.type).toLowerCase() === 'status');
-
+        const statusRows = allRows.filter((row) => String(row.Type).toLowerCase() === 'status');
         renderDiagnosticsTable(statusTableContainer, statusRows);
     } catch (error) {
         console.error('Status table error:', error);
