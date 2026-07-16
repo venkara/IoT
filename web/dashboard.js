@@ -1,6 +1,6 @@
 /******************************************************************************
  * dashboard.js
- * Ver 1.13
+ * Ver 1.133
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *
@@ -79,7 +79,7 @@ const NODES = [
     {
         id: '1',
         suffix: '131A17',
-        label: 'Sensor #1',
+        label: '#1',
         color: '#0e77ff',
         tempOffsetC: 0.0,
         humidityOffset: -5.2,
@@ -87,7 +87,7 @@ const NODES = [
     {
         id: '2',
         suffix: '131A19',
-        label: 'Sensor #2',
+        label: '#2',
         color: '#14b8a6',
         tempOffsetC: 0.0,
         humidityOffset: 0.5,
@@ -95,7 +95,7 @@ const NODES = [
     {
         id: '3',
         suffix: '131A1B',
-        label: 'Sensor #3',
+        label: '#3',
         color: '#a855f7',
         tempOffsetC: 0.0,
         humidityOffset: 0.0,
@@ -1127,14 +1127,12 @@ function buildStatusNodeFilter() {
         const label = document.createElement('label');
 
         label.innerHTML = `
-            <span style="color:${node.color}">
-                <input
-                    type="radio"
-                    name="status-node"
-                    value="${node.suffix}"
-                />
-                ${node.label}
-            </span>
+            <input
+                type="radio"
+                name="status-node"
+                value="${node.suffix}"
+            />
+            ${node.label}
         `;
 
         container.appendChild(label);
