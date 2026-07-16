@@ -1,7 +1,6 @@
 import sys
 import mqtt
 import clock
-import config
 
 SUBSYSTEM_NONE = 0
 SUBSYSTEM_WIFI = 1
@@ -18,7 +17,7 @@ subsystem_names = {
     SUBSYSTEM_MQTT: "MQTT",
     SUBSYSTEM_NTP: "NTP",
     SUBSYSTEM_MEMORY: "Memory",
-    SUBSYSTEM_UNKNOWN: "Unknown"
+    SUBSYSTEM_UNKNOWN: "Unknown",
 }
 
 
@@ -30,53 +29,59 @@ exception_counts = {
     SUBSYSTEM_MQTT: 0,
     SUBSYSTEM_NTP: 0,
     SUBSYSTEM_MEMORY: 0,
-    SUBSYSTEM_UNKNOWN: 0
+    SUBSYSTEM_UNKNOWN: 0,
 }
+
 
 def log_exception(subsystem_code, e, publish=True):
     global last_exception, exception_counts
-    location = None
-    try:
-        frame = sys._getframe(1)
-
-        location = (
-            f"{frame.f_code.co_name}"
-            f":{frame.f_lineno}"
-        )
-    except Exception:
-        location = "unknown"
-
-    payload = {
-        "Timestamp":        clock.current_utc_iso(),
-        "Type":             "exception",
-        "SubsystemCode":    subsystem_names[subsystem_code],
-        "Location":         location,
-        "ExcepType":        type(e).__name__,
-        "Message":          str(e)
-    }
-    
     exception_counts[subsystem_code] += 1
     last_exception = e
+
+    if subsystem_code == SUBSYSTEM_MQTT:
+        publish = False
+
     if publish:
-        mqtt.publish_diagnostics(payload)
-    return
-    
+
+        location = None
+        try:
+            frame = sys._getframe(1)
+            location = f"{frame.f_code.co_name}" f":{frame.f_lineno}"
+        except Exception:
+            location = "unknown"
+
+        payload = {
+            "Timestamp": clock.current_utc_iso(),
+            "Type": "exception",
+            "SubsystemCode": subsystem_names[subsystem_code],
+            "Location": location,
+            "ExcepType": type(e).__name__,
+            "Message": str(e),
+        }
+
+        return mqtt.publish_diagnostics(payload)
+    else:
+        return None
+
 
 def log_message(subsystem_code, message, publish=True):
-    payload = {
-        "Timestamp":        clock.current_utc_iso(),
-        "Type":             "message",
-        "SubsystemCode":    subsystem_names[subsystem_code],
-        "Message":          message
-    }
+    if subsystem_code == SUBSYSTEM_MQTT:
+        publish = False
+
     if publish:
+        payload = {
+            "Timestamp": clock.current_utc_iso(),
+            "Type": "message",
+            "SubsystemCode": subsystem_names[subsystem_code],
+            "Message": message,
+        }
         mqtt.publish_diagnostics(payload)
     return
+
 
 def get_exception_counts():
     payload = {
         subsystem_names[subsystem]: count
-        for subsystem, count
-        in exception_counts.items()
+        for subsystem, count in exception_counts.items()
     }
     return payload

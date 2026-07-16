@@ -6,17 +6,15 @@ import sys
 import ujson
 import networking
 
-mqtt_topic_prefix       = None
-mqtt_client_id          = None
-mqtt_topic_temperature  = None
-mqtt_topic_humidity     = None
-mqtt_topic_diagnostics  = None
-
+mqtt_topic_prefix = None
+mqtt_client_id = None
+mqtt_topic_temperature = None
+mqtt_topic_humidity = None
+mqtt_topic_diagnostics = None
 
 
 message_cache = []
 MAX_CACHED_MESSAGES = 100
-
 
 
 def init_identity():
@@ -40,20 +38,19 @@ def init_identity():
     return True
 
 
-
 def publish_json(mqtt_client, topic, payload):
     try:
         message = ujson.dumps(payload).encode()
         mqtt_client.publish(topic, message)
         wait_with_wdt(1)
         return True
-    
+
     except Exception as e:
         print("Publish failed:")
         sys.print_exception(e)
         return False
 
-    
+
 def publish_queue():
     init_identity()
 
@@ -77,9 +74,7 @@ def publish_queue():
                 password=config.mqtt_password,
                 keepalive=7200,
                 ssl=True,
-                ssl_params={
-                    "server_hostname": config.mqtt_server
-                }
+                ssl_params={"server_hostname": config.mqtt_server},
             )
 
             mqtt_client.connect()
@@ -88,21 +83,17 @@ def publish_queue():
             while message_cache:
                 cached = message_cache[-1]
 
-                if  publish_json(mqtt_client, 
-                                cached["topic"], 
-                                cached["payload"]):
+                if publish_json(mqtt_client, cached["topic"], cached["payload"]):
                     # Remove message from queue if it was sucessfully published
                     message_cache.pop()
-                else:   
+                else:
                     raise RuntimeError("Cached MQTT publish failed")
 
             mqtt_client.disconnect()
             return True
 
         except Exception as e:
-            print(
-                f"MQTT attempt {attempt + 1}/3 failed:"
-            )
+            print(f"MQTT attempt {attempt + 1}/3 failed:")
             sys.print_exception(e)
             last_exception = e
 
@@ -123,17 +114,16 @@ def publish_queue():
         sys.print_exception(last_exception)
 
     return False
-    
+
 
 def publish_diagnostics(payload):
     init_identity()  # Make sure we've initialized our topics
     return queue_for_publish(mqtt_topic_diagnostics, payload)
- 
 
 
 def queue_for_publish(topic, payload):
     global message_cache
-  
+
     # Check queue length and discard oldest message if it's too long
     if get_publish_queue_length() >= MAX_CACHED_MESSAGES:
         tmp = message_cache.pop(0)
@@ -144,6 +134,7 @@ def queue_for_publish(topic, payload):
     message_cache.append(message)
 
     return publish_queue()
+
 
 def get_publish_queue_length():
     return len(message_cache)

@@ -4,9 +4,6 @@ import config
 import gc
 import rp2
 
-
-
-
 led: Pin | None = None
 led_state = False
 wdt: WDT | None = None
@@ -16,9 +13,6 @@ memory_last_reported: int | None = None
 wdt_allowed: bool | None = None
 boot_sel = False
 BOOT_TIME = time.ticks_ms()
-
-
-
 
 
 def feed_wdt():
@@ -46,10 +40,10 @@ def feed_wdt():
 
 
 def wait_with_wdt(delay_seconds):
-    for _ in range(delay_seconds * 2): # Check every 0.5 seconds
+    for _ in range(delay_seconds * 2):  # Check every 0.5 seconds
         feed_wdt()
         time.sleep_ms(500)
-        toggle_led()  # heartbeats 
+        toggle_led()  # heartbeats
 
 
 def wait_since_prev_event(delta_time):
@@ -61,7 +55,7 @@ def wait_since_prev_event(delta_time):
     while time.ticks_diff(scheduled_time, time.ticks_ms()) > 0:
         feed_wdt()
         time.sleep_ms(500)
-        toggle_led()  # heartbeats 
+        toggle_led()  # heartbeats
 
     wait_start_time = scheduled_time
 
