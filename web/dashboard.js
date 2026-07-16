@@ -1,6 +1,6 @@
 /******************************************************************************
  * dashboard.js
- * Ver 1.14
+ * Ver 1.17
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *

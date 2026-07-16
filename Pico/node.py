@@ -59,7 +59,9 @@ def get_boot_count():
 
         reset_cause, _ = get_reset_cause()
 
-        if reset_cause == 0:  # reset the boot count if it was a power-on reset
+        if (
+            reset_cause < 2
+        ):  # reset the boot count if it was a power-on reset or hard reset
             boot_count = 1
         else:
             boot_count += 1
