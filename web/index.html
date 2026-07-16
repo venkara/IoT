@@ -88,7 +88,7 @@ Author: Radha Venkat
 
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>TL Dashboard 1.12</title>
+        <title>TL Dashboard 1.13</title>
         <!-- Tailwind CSS for mobile layouts -->
         <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
         <!-- MQTT.js library -->
@@ -162,6 +162,7 @@ Author: Radha Venkat
             <section class="grid grid-cols-3 gap-3">
                 <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                     <span
+                        id="label-1"
                         class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1"
                         >Sensor #1</span
                     >
@@ -176,6 +177,7 @@ Author: Radha Venkat
 
                 <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                     <span
+                        id="label-2"
                         class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1"
                         >Sensor #2</span
                     >
@@ -190,6 +192,7 @@ Author: Radha Venkat
 
                 <div class="bg-slate-800 p-3 rounded-xl border border-slate-700/50 text-center">
                     <span
+                        id="label-3"
                         class="text-[10px] font-bold tracking-wider text-slate-400 block uppercase mb-1"
                         >Sensor #3</span
                     >
@@ -268,7 +271,9 @@ Author: Radha Venkat
                     Status History
                 </button>
 
-                <div id="status-table-container" class="hidden mt-4 overflow-x-auto"></div>
+                <div id="status-table-container" class="hidden mt-4 overflow-x-auto">
+                    <div id="status-node-filter" class="flex flex-wrap gap-3 mt-3 text-xs"></div>
+                </div>
             </section>
 
             <section class="bg-slate-800 p-4 rounded-2xl border border-slate-700/50">

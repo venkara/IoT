@@ -1,6 +1,6 @@
 /******************************************************************************
  * dashboard.js
- * Ver 1.002
+ * Ver 1.13
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *
@@ -364,6 +364,8 @@ function init() {
         buildCharts();
         updateTemperatureUnitLabels();
         loadHistoricalData();
+        buildStatusNodeFilter();
+        updateNodeLabels();
     } else {
         modalEl.classList.remove('hidden');
 
@@ -683,6 +685,15 @@ function updateChartsFromData(allData) {
 /******************************************************************************
  * CURRENT VALUE CARDS
  ******************************************************************************/
+function updateNodeLabels() {
+    NODES.forEach((node) => {
+        const labelElement = document.getElementById(`label-${node.id}`);
+
+        if (labelElement) {
+            labelElement.textContent = node.label;
+        }
+    });
+}
 
 function getLatestValidRecord(feedPoints) {
     if (!Array.isArray(feedPoints)) {
@@ -1080,6 +1091,47 @@ async function showLogTable() {
         logTableContainer.innerHTML =
             '<div class="text-sm text-rose-400">Unable to load log data.</div>';
     }
+}
+
+function buildStatusNodeFilter() {
+    const container = document.getElementById('status-node-filter');
+
+    container.innerHTML = '';
+
+    const allLabel = document.createElement('label');
+
+    allLabel.innerHTML = `
+        <input
+            type="radio"
+            name="status-node"
+            value="all"
+            checked
+        />
+        All
+    `;
+
+    container.appendChild(allLabel);
+
+    NODES.forEach((node) => {
+        const label = document.createElement('label');
+
+        label.innerHTML = `
+            <span style="color:${node.color}">
+                <input
+                    type="radio"
+                    name="status-node"
+                    value="${node.suffix}"
+                />
+                ${node.label}
+            </span>
+        `;
+
+        container.appendChild(label);
+    });
+
+    container.querySelectorAll('input[name="status-node"]').forEach((radio) => {
+        radio.addEventListener('change', renderFilteredStatusTable);
+    });
 }
 
 /******************************************************************************
