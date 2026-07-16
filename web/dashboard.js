@@ -906,7 +906,7 @@ function makeDiagnosticsRows(feedData, node) {
                         row[`Ex_${subsystem}`] = count;
                     });
                 } else {
-                    if (key === 'Uptime_s') {
+                    if (key === 'Uptime') {
                         row.Uptime = formatUptime(value);
                     } else {
                         row[key] = value;
