@@ -1,6 +1,6 @@
 /******************************************************************************
  * dashboard.js
- * Ver 1.133
+ * Ver 1.135
  *
  * Tres Lunas Environmental Monitoring Dashboard
  *
@@ -364,8 +364,8 @@ function init() {
         buildCharts();
         updateTemperatureUnitLabels();
         loadHistoricalData();
-        buildStatusNodeFilter();
         updateNodeLabels();
+        buildStatusNodeFilter();
     } else {
         modalEl.classList.remove('hidden');
 
@@ -385,63 +385,22 @@ function chartOptions(yAxisTitle) {
         responsive: true,
         maintainAspectRatio: false,
         parsing: false,
-
         scales: {
             x: {
                 type: 'time',
-
-                time: {
-                    unit: 'hour',
-                },
-
-                grid: {
-                    color: '#334155',
-                },
-
-                ticks: {
-                    color: '#94a3b8',
-                },
+                time: { unit: 'hour' },
+                grid: { color: '#334155' },
+                ticks: { color: '#94a3b8' },
             },
 
             y: {
-                title: {
-                    display: true,
-                    text: yAxisTitle,
-                    color: '#94a3b8',
-                },
-
-                grid: {
-                    color: '#334155',
-                },
-
-                ticks: {
-                    color: '#94a3b8',
-                },
+                title: { display: true, text: yAxisTitle, color: '#94a3b8' },
+                grid: { color: '#334155' },
+                ticks: { color: '#94a3b8' },
             },
         },
-
-        plugins: {
-            legend: {
-                labels: {
-                    color: '#f8fafc',
-
-                    font: {
-                        size: 10,
-                    },
-                },
-            },
-        },
-
-        elements: {
-            point: {
-                radius: 1,
-                hoverRadius: 4,
-            },
-
-            line: {
-                borderWidth: 2,
-            },
-        },
+        plugins: { legend: { labels: { color: '#f8fafc', font: {} } } },
+        elements: { point: { radius: 1, hoverRadius: 4 }, line: { borderWidth: 2 } },
     };
 }
 
@@ -456,37 +415,27 @@ function buildCharts() {
 
     tempChart = new Chart(document.getElementById('tempChart'), {
         type: 'line',
-
         data: {
             datasets: NODES.map((node) => ({
                 label: node.label,
-
                 data: [],
-
                 borderColor: node.color,
-
                 backgroundColor: `${node.color}22`,
             })),
         },
-
         options: chartOptions(`Temperature (` + `${getTemperatureUnitLabel()})`),
     });
 
     humidityChart = new Chart(document.getElementById('humidityChart'), {
         type: 'line',
-
         data: {
             datasets: NODES.map((node) => ({
                 label: node.label,
-
                 data: [],
-
                 borderColor: node.color,
-
                 backgroundColor: `${node.color}22`,
             })),
         },
-
         options: chartOptions('Relative humidity (%)'),
     });
 }
@@ -1092,9 +1041,7 @@ async function showLogTable() {
 
     try {
         const allRows = await loadDiagnosticsRows();
-
         const logRows = allRows.filter((row) => String(row.Type).toLowerCase() !== 'status');
-
         renderDiagnosticsTable(logTableContainer, logRows);
     } catch (error) {
         console.error('Log table error:', error);
@@ -1106,35 +1053,14 @@ async function showLogTable() {
 
 function buildStatusNodeFilter() {
     const container = document.getElementById('status-node-filter');
-
     container.innerHTML = '';
-
     const allLabel = document.createElement('label');
-
-    allLabel.innerHTML = `
-        <input
-            type="radio"
-            name="status-node"
-            value="all"
-            checked
-        />
-        All
-    `;
+    allLabel.innerHTML = `<input type="radio" name="status-node" value="all" checked/>All`;
 
     container.appendChild(allLabel);
-
     NODES.forEach((node) => {
         const label = document.createElement('label');
-
-        label.innerHTML = `
-            <input
-                type="radio"
-                name="status-node"
-                value="${node.suffix}"
-            />
-            ${node.label}
-        `;
-
+        label.innerHTML = `<input type="radio" name="status-node" value="${node.suffix}" /> ${node.label} `;
         container.appendChild(label);
     });
 
