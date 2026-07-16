@@ -81,7 +81,7 @@ const NODES = [
         id: '1',
         suffix: '131A17',
         label: '#1',
-        color: '#0e77ff',
+        color: '#14b8a6',
         tempOffsetC: 0.0,
         humidityOffset: -5.2,
     },
@@ -89,7 +89,7 @@ const NODES = [
         id: '2',
         suffix: '131A19',
         label: '#2',
-        color: '#14b8a6',
+        color: '#0e77ff',
         tempOffsetC: 0.0,
         humidityOffset: 0.5,
     },
@@ -288,7 +288,7 @@ function canonicalFieldName(name) {
         location: 'Location',
         rssi: 'RSSI',
         rssi_dbm: 'RSSI',
-        uptime_s: 'Uptime_s',
+        uptime_s: 'Uptime',
         freememory: 'FreeMemory',
     };
 
@@ -616,17 +616,11 @@ function updateChartsFromData(allData) {
     applyTimeScale();
 
     const binMinutes = Number.parseInt(binSelect.value, 10);
-
     tempChart.data.datasets[0].data = parseChartData(allData[0], 't1', binMinutes);
-
     tempChart.data.datasets[1].data = parseChartData(allData[2], 't2', binMinutes);
-
     tempChart.data.datasets[2].data = parseChartData(allData[4], 't3', binMinutes);
-
     humidityChart.data.datasets[0].data = parseChartData(allData[1], 'h1', binMinutes);
-
     humidityChart.data.datasets[1].data = parseChartData(allData[3], 'h2', binMinutes);
-
     humidityChart.data.datasets[2].data = parseChartData(allData[5], 'h3', binMinutes);
 
     tempChart.update();
@@ -911,12 +905,14 @@ function makeDiagnosticsRows(feedData, node) {
                     Object.entries(value).forEach(([subsystem, count]) => {
                         row[`Ex_${subsystem}`] = count;
                     });
+                    if (key === 'Uptime_s') {
+                        row.Uptime = formatUptime(value);
+                    }
                 } else {
                     row[key] = value;
                 }
             }
         });
-
         rows.push(row);
     });
 
@@ -1004,6 +1000,25 @@ function renderDiagnosticsTable(container, rows) {
             </tbody>
         </table>
     `;
+}
+
+function formatUptime(seconds) {
+    const days = Math.floor(seconds / 86400);
+    seconds %= 86400;
+
+    const hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+
+    const minutes = Math.floor(seconds / 60);
+    seconds %= 60;
+
+    const pad = (n) => String(n).padStart(2, '0');
+
+    if (days > 0) {
+        return `${days}d ${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
 function formatDiagnosticsValue(column, value) {

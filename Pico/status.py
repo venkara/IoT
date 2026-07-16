@@ -5,6 +5,7 @@ import networking
 import mqtt
 import config
 import errors
+import gc
 
 last_status_published_time: int | None = None
 scheduled_time: int | None = None
@@ -18,6 +19,7 @@ def get_status():
         "RSSI_dBm": networking.get_wifi_rssi(),
         "Boot_count": node.get_boot_count(),
         "Msg_queue": mqtt.get_publish_queue_length(),
+        "FreeMemory": gc.mem_free(),
         "Type": "status",
     }
     exception_counts["ExceptionCounts"] = errors.get_exception_counts()
