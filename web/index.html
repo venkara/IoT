@@ -1,6 +1,91 @@
 <!doctype html>
+<!--
+==============================================================================
+Tres Lunas Environmental Monitoring Dashboard
+==============================================================================
+
+Purpose
+-------
+Web dashboard for viewing environmental data collected by a network of
+Raspberry Pi Pico W sensor nodes deployed in Playa del Carmen, Mexico.
+
+Features
+--------
+• Displays current temperature and relative humidity readings
+• Retrieves historical data from Adafruit IO via REST API
+• Receives live updates via MQTT over WebSockets
+• Supports multiple sensor nodes
+• Provides configurable time ranges and binning intervals
+• Exports charted data to CSV
+• Displays diagnostic logs and node status information in tabular form
+
+Data Philosophy
+---------------
+• Pico-generated timestamps are authoritative.
+• Adafruit 'created_at' timestamps are used only for API pagination.
+• Historical charts and diagnostics are sorted using embedded timestamps.
+
+Sensor Data Format
+------------------
+{
+    "reading": 23.7,
+    "timestamp": "2026-07-15T18:42:31Z"
+}
+
+Diagnostic Data Format
+----------------------
+Diagnostic payloads may contain arbitrary fields, including:
+
+{
+    "Type": "status",
+    "Timestamp": "...",
+    "RSSI": -43,
+    "BootCount": 5,
+    ...
+}
+
+or
+
+{
+    "Type": "exception",
+    "SubsystemCode": "NTP",
+    "Message": "...",
+    ...
+}
+
+Design Philosophy
+-----------------
+• Readability over cleverness
+• Explicit control flow
+• Conservative error handling
+• Minimal dependencies
+• Long-term unattended operation
+• Dynamic handling of diagnostic payload fields
+
+External Dependencies
+---------------------
+• Tailwind CSS
+• Chart.js
+• chartjs-adapter-date-fns
+• MQTT.js
+• Adafruit IO REST API
+• Adafruit IO MQTT service
+
+Project
+-------
+Tres Lunas Climate Network
+Firmware Series: v1.x
+Author: Radha Venkat
+
+==============================================================================
+-->
 <html lang="en">
     <head>
+        <!--
+        This file primarily defines page layout and UI elements.
+        Most application logic resides in dashboard.js.
+        -->
+
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>TL Dashboard 1.12</title>

@@ -13,7 +13,7 @@ import errors
 import gc
 import node
 
-FIRMWARE_VERSION = "1.15"
+FIRMWARE_VERSION = "1.16"
 
 print("-----------------------------\n\n\n")
 cause, cause_str = node.get_reset_cause()
